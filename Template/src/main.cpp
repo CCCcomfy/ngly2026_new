@@ -1,88 +1,54 @@
 #include "main.h"
 
-/**
- * A callback function for LLEMU's center button.
- *
- * When this callback is fired, it will toggle line 2 of the LCD text between
- * "I was pressed!" and nothing.
- */
-
-void on_center_button() {
-	static bool pressed = false;
-	pressed = !pressed;
-	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed!");
-	} else {
-		pros::lcd::clear_line(2);
-	}
-}
+#include "chassis.hpp"
+#include "robot.hpp"
+#include "robot_config.hpp"
 
 /**
- * Runs initialization code. This occurs as soon as the program is started.
- *
- * All other competition modes are blocked by initialize; it is recommended
- * to keep execution time for this mode under a few seconds.
+ * 只执行一次的入场准备。执行期间所有比赛模式都会被挡住，所以要快。
  */
-
 void initialize() {
-	pros::lcd::initialize();
-	imu.reset(true);
-	motor.tare_position();
-	pros::Task;
+    pros::lcd::initialize();
+
+    // 阻塞式校准（约 2 秒）：这一行返回之前车必须完全静止。
+    // 否则 IMU 会把「启动时的晃动」当成零位，之后所有转向都是歪的。
+    g_chassis.resetImu();
+
+    g_chassis.initialize();
+    g_robot.initialize();
 }
 
 /**
- * Runs while the robot is in the disabled state of Field Management System or
- * the VEX Competition Switch, following either autonomous or opcontrol. When
- * the robot is enabled, this task will exit.
+ * 机器人处于「被禁用」状态时运行：赛前待机、自动结束到手动开始之间、断联之后。
+ * 这里是唯一适合做「安全动作」的地方 —— 让所有机构停下来。
  */
-
-void disabled() {}
+void disabled() {
+    g_chassis.stop();
+    g_robot.liftStop();
+}
 
 /**
- * Runs after initialize(), and before autonomous when connected to the Field
- * Management System or the VEX Competition Switch. This is intended for
- * competition-specific initialization routines, such as an autonomous selector
- * on the LCD.
- *
- * This task will exit when the robot is enabled and autonomous or opcontrol
- * starts.
+ * 赛前钩子：只在接了比赛控制时运行，用来选自动方案、调参数。
+ * 现在只有一套自动，所以留空；以后要做红 / 蓝 / AWP 选择就写在这里。
  */
-
-void competition_initialize() {}
+void competition_initialize() {
+}
 
 /**
- * Runs the user autonomous code. This function will be started in its own task
- * with the default priority and stack size whenever the robot is enabled via
- * the Field Management System or the VEX Competition Switch in the autonomous
- * mode. Alternatively, this function may be called in initialize or opcontrol
- * for non-competition testing purposes.
- *
- * If the robot is disabled or communications is lost, the autonomous task
- * will be stopped. Re-enabling the robot will restart the task, not re-start it
- * from where it left off.
+ * 自动阶段。跑在独立任务里，被禁用或断联时会被强行掐断。
+ * 必须可重入：每次进来都当成脏状态，先归零再跑路径。
  */
-
 void autonomous() {
-	
+    g_chassis.initialize();   // 编码器清零 + 刹车模式
+    g_chassis.tareHeading();  // 朝向归零
 }
 
-/**
- * Runs the operator control code. This function will be started in its own task
- * with the default priority and stack size whenever the robot is enabled via
- * the Field Management System or the VEX Competition Switch in the operator
- * control mode.
- *
- * If no competition control is connected, this function will run immediately
- * following initialize().
- *
- * If the robot is disabled or communications is lost, the
- * operator control task will be stopped. Re-enabling the robot will restart the
- * task, not resume it from where it left off.
- */
-
+// 手动赛
 void opcontrol() {
-	while(true){
-		pros::delay(20);
-	}
+    while (true) {
+        const int power = g_master.get_analog(ANALOG_LEFT_Y);
+        const int turn = g_master.get_analog(ANALOG_RIGHT_X);
+        g_chassis.arcade(power, turn);
+        pros::delay(20);
+    }
 }
