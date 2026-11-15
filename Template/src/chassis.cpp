@@ -7,20 +7,12 @@
 #include "robot_config.hpp"
 
 namespace {
+    // 单个电机功率的上下限
+    constexpr int kMaxPower = 127;
 
-constexpr int kStickDeadband = 5;
-
-// 单个电机功率的上下限
-constexpr int kMaxPower = 127;
-
-// 限幅：把任意整数限制在 -127 ~ 127
-int clamp_power(int value) {
-    return std::max(-kMaxPower, std::min(kMaxPower, value));
-}
-
-// 死区：绝对值小于阈值的输入一律当成 0
-int apply_deadband(int value) {
-    return (std::abs(value) < kStickDeadband) ? 0 : value;
+    // 限幅：把任意整数限制在 -127 ~ 127
+    int clamp_power(int value) {
+        return std::max(-kMaxPower, std::min(kMaxPower, value));
 }
 
 // 同侧多电机的数值求平均。屏幕只需要一个数，取平均比分电机显示省地方。
@@ -37,13 +29,15 @@ double average(const std::vector<double>& values) {
 
 }  // namespace
 
+
+
 Chassis::Chassis()
     : m_left_drive({pros::Motor(Config::kLeftFrontPort, Config::kDriveGearset, true),
                     pros::Motor(Config::kLeftBackPort, Config::kDriveGearset, true)}),
       m_right_drive({pros::Motor(Config::kRightFrontPort, Config::kDriveGearset, false),
                      pros::Motor(Config::kRightBackPort, Config::kDriveGearset, false)}),
-    Lft(8,0.65),
-    Rgt(8,0.65),
+      m_left_curve(Config::kStickDeadband, Config::kMinOutput, Config::kCurveGain),
+      m_right_curve(Config::kStickDeadband, Config::kMinOutput, Config::kCurveGain),
       m_imu(Config::kImuPort) {}
 
 void Chassis::initialize() {
@@ -52,38 +46,31 @@ void Chassis::initialize() {
     m_right_drive.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
 
     // 编码器清零
-    // 自动赛每次进入都必须重做
     m_left_drive.tare_position();
     m_right_drive.tare_position();
 }
 
 void Chassis::drive(int left, int right) {
-    m_left_drive.move(Lft.apply(clamp_power(left)));
-    m_right_drive.move(Rgt.apply(clamp_power(right)));
+    m_left_drive.move(clamp_power(left));
+    m_right_drive.move(clamp_power(right));
 }
-
-// void Chassis::arcade(int power, int turn) {
-//     int left = apply_deadband(power);
-//     int right = apply_deadband(turn);
-
-//     const int max_magnitude = std::max(std::abs(left), std::abs(right));
-//     if (max_magnitude > kMaxPower) {
-//         left = left * kMaxPower / max_magnitude;
-//         right = right * kMaxPower / max_magnitude;
-//     }
-
-//     drive(left, right);
-// }
-
+void Chassis::tank(int stick_left, int stick_right) {
+    drive(static_cast<int>(m_left_curve.apply(stick_left)),
+          static_cast<int>(m_right_curve.apply(stick_right)));
+}
 void Chassis::stop() {
     drive(0, 0);
 }
+
+
 
 void Chassis::resetImu() {
     // 阻塞式校准：这一行返回之前车必须完全静止。
     // 否则 IMU 会把「启动时的晃动」当成零位，之后所有转向都是歪的。
     m_imu.reset(true);
 }
+
+
 
 void Chassis::tareHeading() {
     m_imu.tare_heading();

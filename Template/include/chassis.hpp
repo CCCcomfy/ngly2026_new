@@ -16,9 +16,7 @@ public:
     // 给左右两侧功率 -127 ~ 127，超出会限幅
     void drive(int left, int right);
 
-    // 摇杆操作：power 前进分量，turn 转向分量 死区 合成
-    // void arcade(int power, int turn);
-
+    void tank(int stick_left,int stick_right);
     // 停车
     void stop();
 
@@ -37,7 +35,9 @@ public:
 private:
     pros::Motor_Group m_left_drive;   // 左侧两个电机
     pros::Motor_Group m_right_drive;  // 右侧两个电机
-    pros::Imu m_imu;     
-    DriveCurve Lft;         // 朝向传感器
-    DriveCurve Rgt;
+
+    DriveCurve m_left_curve;   // 左杆曲线
+    DriveCurve m_right_curve;  // 右杆曲线
+
+    pros::Imu m_imu;  // 朝向传感器
 };

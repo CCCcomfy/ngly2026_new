@@ -24,6 +24,11 @@ public:
 
     // 传感器
     static constexpr int kImuPort = 6;
+    
+    // 摇杆映射
+    static constexpr int kStickDeadband = 8;     // 死区：中位抖动直接吃掉
+    static constexpr double kMinOutput = 10.0;   // 刚出死区时的最小输出，用来顶过静摩擦
+    static constexpr double kCurveGain = 1.01;   // 曲线强度。1 = 线性，越大中心越"软"
 };
 extern Chassis g_chassis;
 extern Robot g_robot;

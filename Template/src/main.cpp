@@ -56,7 +56,7 @@ void opcontrol() {
     while (true) {
         const int left = g_master.get_analog(ANALOG_LEFT_Y);
         const int right = g_master.get_analog(ANALOG_RIGHT_Y);
-        g_chassis.drive(left, right);
+        g_chassis.tank(left, right);
 
         // 屏幕约 4Hz 刷新。写屏比想象中慢，每圈都画会把主循环拖到十几赫兹，
         // 表现就是「摇杆一动车要慢半拍」。
