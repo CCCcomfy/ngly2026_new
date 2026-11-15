@@ -9,6 +9,7 @@
  */
 void initialize() {
     pros::lcd::initialize();
+    g_display.draw("[BOOT]");
 
     // 阻塞式校准（约 2 秒）：这一行返回之前车必须完全静止。
     // 否则 IMU 会把「启动时的晃动」当成零位，之后所有转向都是歪的。
@@ -16,6 +17,7 @@ void initialize() {
 
     g_chassis.initialize();
     g_robot.initialize();
+    g_display.draw("[READY]");
 }
 
 /**
@@ -25,6 +27,7 @@ void initialize() {
 void disabled() {
     g_chassis.stop();
     g_robot.liftStop();
+    g_display.draw("[DISABLED]");
 }
 
 /**
@@ -41,14 +44,26 @@ void competition_initialize() {
 void autonomous() {
     g_chassis.initialize();   // 编码器清零 + 刹车模式
     g_chassis.tareHeading();  // 朝向归零
+    g_display.draw("[AUTO]");
 }
 
 // 手动赛
 void opcontrol() {
+    g_display.draw("[OPCTRL]");
+
+    int loop_count = 0;
+
     while (true) {
-        const int power = g_master.get_analog(ANALOG_LEFT_Y);
-        const int turn = g_master.get_analog(ANALOG_RIGHT_X);
-        g_chassis.arcade(power, turn);
+        const int left = g_master.get_analog(ANALOG_LEFT_Y);
+        const int right = g_master.get_analog(ANALOG_RIGHT_Y);
+        g_chassis.drive(left, right);
+
+        // 屏幕约 4Hz 刷新。写屏比想象中慢，每圈都画会把主循环拖到十几赫兹，
+        // 表现就是「摇杆一动车要慢半拍」。
+        if (++loop_count % 12 == 0) {
+            g_display.draw("[OPCTRL]");
+        }
+
         pros::delay(20);
     }
 }

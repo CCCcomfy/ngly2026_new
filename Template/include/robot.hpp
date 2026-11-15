@@ -21,6 +21,9 @@ public:
     void clampClose();
     void clampToggle();  // 在开 / 关之间切换
 
+    // 夹爪当前是否闭合，给屏幕显示用
+    bool isClampClosed() const;
+
 private:
     pros::Motor m_lift;
     pros::ADIDigitalOut m_clamp;

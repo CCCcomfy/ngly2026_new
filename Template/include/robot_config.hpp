@@ -3,18 +3,17 @@
 #include "main.h"
 
 #include "chassis.hpp"
+#include "display.hpp"
 #include "robot.hpp"
 
 // robot_config —— 车辆设置（车辆信息）
 class Config {
 public:
-    // 电机：左右各三个
-    static constexpr int kLeftFrontPort = 1;   // 左前
-    static constexpr int kLeftMidPort = 2;     // 左中
-    static constexpr int kLeftBackPort = 3;    // 左后
-    static constexpr int kRightFrontPort = 4;  // 右前
-    static constexpr int kRightMidPort = 5;    // 右中
-    static constexpr int kRightBackPort = 6;   // 右后
+    // 电机：左右各两个
+    static constexpr int kLeftFrontPort = 4;   // 左前
+    static constexpr int kLeftBackPort = 10;    // 左后
+    static constexpr int kRightFrontPort = 2;  // 右前
+    static constexpr int kRightBackPort = 5;   // 右后
 
     static constexpr pros::motor_gearset_e_t kDriveGearset = pros::E_MOTOR_GEARSET_18;  // 绿 200rpm
 
@@ -24,8 +23,11 @@ public:
     static constexpr char kClampPort = 'A';  // ADI三线口
 
     // 传感器
-    static constexpr int kImuPort = 8;
+    static constexpr int kImuPort = 6;
 };
 extern Chassis g_chassis;
 extern Robot g_robot;
 extern pros::Controller g_master;
+
+// 主控屏幕。构造顺序有讲究：它持有上面三个对象的引用，必须排在它们后面。
+extern Display g_display;

@@ -30,3 +30,7 @@ void Robot::clampClose() {
 
 void Robot::clampToggle() {
 }
+
+bool Robot::isClampClosed() const {
+    return m_clamp_closed;
+}

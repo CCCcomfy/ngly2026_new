@@ -2,7 +2,8 @@
 
 #include <algorithm>
 #include <cstdlib>
-
+#include <vector>
+#include "drive_curve.hpp"
 #include "robot_config.hpp"
 
 namespace {
@@ -22,15 +23,27 @@ int apply_deadband(int value) {
     return (std::abs(value) < kStickDeadband) ? 0 : value;
 }
 
+// 同侧多电机的数值求平均。屏幕只需要一个数，取平均比分电机显示省地方。
+double average(const std::vector<double>& values) {
+    if (values.empty()) {
+        return 0.0;
+    }
+    double sum = 0.0;
+    for (double value : values) {
+        sum += value;
+    }
+    return sum / static_cast<double>(values.size());
+}
+
 }  // namespace
 
 Chassis::Chassis()
-    : m_left_drive({pros::Motor(Config::kLeftFrontPort, Config::kDriveGearset, false),
-                    pros::Motor(Config::kLeftMidPort, Config::kDriveGearset, false),
-                    pros::Motor(Config::kLeftBackPort, Config::kDriveGearset, false)}),
-      m_right_drive({pros::Motor(Config::kRightFrontPort, Config::kDriveGearset, true),
-                     pros::Motor(Config::kRightMidPort, Config::kDriveGearset, true),
-                     pros::Motor(Config::kRightBackPort, Config::kDriveGearset, true)}),
+    : m_left_drive({pros::Motor(Config::kLeftFrontPort, Config::kDriveGearset, true),
+                    pros::Motor(Config::kLeftBackPort, Config::kDriveGearset, true)}),
+      m_right_drive({pros::Motor(Config::kRightFrontPort, Config::kDriveGearset, false),
+                     pros::Motor(Config::kRightBackPort, Config::kDriveGearset, false)}),
+    Lft(8,0.65),
+    Rgt(8,0.65),
       m_imu(Config::kImuPort) {}
 
 void Chassis::initialize() {
@@ -45,25 +58,22 @@ void Chassis::initialize() {
 }
 
 void Chassis::drive(int left, int right) {
-    m_left_drive.move(clamp_power(left));
-    m_right_drive.move(clamp_power(right));
+    m_left_drive.move(Lft.apply(clamp_power(left)));
+    m_right_drive.move(Rgt.apply(clamp_power(right)));
 }
 
-void Chassis::arcade(int power, int turn) {
-    const int forward = apply_deadband(power);
-    const int steer = apply_deadband(turn);
+// void Chassis::arcade(int power, int turn) {
+//     int left = apply_deadband(power);
+//     int right = apply_deadband(turn);
 
-    int left = forward + steer;
-    int right = forward - steer;
+//     const int max_magnitude = std::max(std::abs(left), std::abs(right));
+//     if (max_magnitude > kMaxPower) {
+//         left = left * kMaxPower / max_magnitude;
+//         right = right * kMaxPower / max_magnitude;
+//     }
 
-    const int max_magnitude = std::max(std::abs(left), std::abs(right));
-    if (max_magnitude > kMaxPower) {
-        left = left * kMaxPower / max_magnitude;
-        right = right * kMaxPower / max_magnitude;
-    }
-
-    drive(left, right);
-}
+//     drive(left, right);
+// }
 
 void Chassis::stop() {
     drive(0, 0);
@@ -77,4 +87,27 @@ void Chassis::resetImu() {
 
 void Chassis::tareHeading() {
     m_imu.tare_heading();
+}
+
+double Chassis::getHeading() {
+    return m_imu.get_heading();
+}
+
+double Chassis::leftPosition() {
+    return average(m_left_drive.get_positions());
+}
+
+double Chassis::rightPosition() {
+    return average(m_right_drive.get_positions());
+}
+
+int Chassis::maxTemperature() {
+    double max_temp = 0.0;
+    for (double temp : m_left_drive.get_temperatures()) {
+        max_temp = std::max(max_temp, temp);
+    }
+    for (double temp : m_right_drive.get_temperatures()) {
+        max_temp = std::max(max_temp, temp);
+    }
+    return static_cast<int>(max_temp);
 }
