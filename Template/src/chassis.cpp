@@ -13,7 +13,13 @@ namespace {
     // 限幅：把任意整数限制在 -127 ~ 127
     int clamp_power(int value) {
         return std::max(-kMaxPower, std::min(kMaxPower, value));
-}
+    }
+
+    // 限幅：把转速限制在 ±最高转速。驱动层再防一次，别指望电机固件悄悄兜底
+    double clamp_rpm(double value) {
+        const double limit = static_cast<double>(Config::kMaxDriveRpm);
+        return std::max(-limit, std::min(limit, value));
+    }
 
 // 同侧多电机的数值求平均。屏幕只需要一个数，取平均比分电机显示省地方。
 double average(const std::vector<double>& values) {
@@ -50,16 +56,24 @@ void Chassis::initialize() {
     m_right_drive.tare_position();
 }
 
-void Chassis::drive(int left, int right) {
+void Chassis::drivePower(int left, int right) {
     m_left_drive.move(clamp_power(left));
     m_right_drive.move(clamp_power(right));
 }
-void Chassis::tank(int stick_left, int stick_right) {
-    drive(static_cast<int>(m_left_curve.apply(stick_left)),
-          static_cast<int>(m_right_curve.apply(stick_right)));
+
+void Chassis::driveVelocity(double left_rpm, double right_rpm) {
+    m_left_drive.move_velocity(static_cast<std::int32_t>(clamp_rpm(left_rpm)));
+    m_right_drive.move_velocity(static_cast<std::int32_t>(clamp_rpm(right_rpm)));
 }
+
+void Chassis::tank(int stick_left, int stick_right) {
+    constexpr double kStickToRpm = static_cast<double>(Config::kMaxDriveRpm) / kMaxPower;
+    driveVelocity(m_left_curve.apply(stick_left) * kStickToRpm,
+                  m_right_curve.apply(stick_right) * kStickToRpm);
+}
+
 void Chassis::stop() {
-    drive(0, 0);
+    driveVelocity(0.0, 0.0);
 }
 
 
@@ -86,6 +100,20 @@ double Chassis::leftPosition() {
 
 double Chassis::rightPosition() {
     return average(m_right_drive.get_positions());
+}
+
+double Chassis::leftVelocity() {
+    // get_actual_velocities 返回电机实测转速（rpm），同侧两个电机取平均
+    return average(m_left_drive.get_actual_velocities());
+}
+
+double Chassis::rightVelocity() {
+    return average(m_right_drive.get_actual_velocities());
+}
+
+double Chassis::wheelRpm() {
+    // 车体转速 = 左右平均（差速转向时左右不等，这里只作参考值）再按传动比折算到轮侧
+    return (leftVelocity() + rightVelocity()) / 2.0 * Config::kDriveGearRatio;
 }
 
 int Chassis::maxTemperature() {

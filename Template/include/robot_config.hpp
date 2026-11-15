@@ -16,6 +16,11 @@ public:
     static constexpr int kRightBackPort = 5;   // 右后
 
     static constexpr pros::motor_gearset_e_t kDriveGearset = pros::E_MOTOR_GEARSET_18;  // 绿 200rpm
+    // 底盘最高转速（rpm），必须和上面的齿轮箱对上：绿 18:1 = 200、红 36:1 = 100、蓝 6:1 = 600。
+    static constexpr int kMaxDriveRpm = 200;
+
+    // 电机到轮子的传动比（轮子转速 / 电机转速）。
+    static constexpr double kDriveGearRatio = 5.0 / 3.0;
 
     // 机构
     static constexpr int kLiftPort = 7;
