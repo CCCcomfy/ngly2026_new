@@ -3,7 +3,7 @@
 #include <cstdint>
 
 #include "main.h"
-#include "drive_curve.hpp"
+#include "chassis/drive_curve.hpp"
 // chassis —— 底盘类
 class Chassis {
 public:

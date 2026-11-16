@@ -1,6 +1,6 @@
-#include "robot.hpp"
+#include "core/robot.hpp"
 
-#include "robot_config.hpp"
+#include "core/robot_config.hpp"
 
 namespace {
     constexpr int kLiftPower = 100;

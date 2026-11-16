@@ -1,4 +1,4 @@
-#include "robot_config.hpp"
+#include "core/robot_config.hpp"
 
 Chassis g_chassis;
 Robot g_robot;

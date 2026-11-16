@@ -1,8 +1,10 @@
 #include "main.h"
 
-#include "chassis.hpp"
-#include "robot.hpp"
-#include "robot_config.hpp"
+#include "chassis/chassis.hpp"
+#include "mech/controls.hpp"
+#include "mech/mech.hpp"
+#include "core/robot.hpp"
+#include "core/robot_config.hpp"
 
 /**
  * 只执行一次的入场准备。执行期间所有比赛模式都会被挡住，所以要快。
@@ -16,7 +18,14 @@ void initialize() {
     g_chassis.resetImu();
 
     g_chassis.initialize();
-    g_robot.initialize();
+
+    // 机构上电：先起控制任务，再归零（滑轨降到堵转、摇臂压到限位），
+    // 最后收到行驶位。归零两轴各最多 3 秒，参数没标定时会一直撞，
+    // 调试期先注释掉 home 和 goTo 这两行。
+    mech::init();
+    mech::home();
+    mech::goTo(mech::TRAVEL, 1500);
+
     g_display.draw("[READY]");
 }
 
@@ -26,7 +35,7 @@ void initialize() {
  */
 void disabled() {
     g_chassis.stop();
-    g_robot.liftStop();
+    mech::emergencyStop();   // 滑轨刹车、摇臂原地托住，不是断电
     g_display.draw("[DISABLED]");
 }
 
@@ -44,6 +53,7 @@ void competition_initialize() {
 void autonomous() {
     g_chassis.initialize();   // 编码器清零 + 刹车模式
     g_chassis.tareHeading();  // 朝向归零
+    g_robot.initialize();     // 队库 Robot 还没删，先保留：自动赛继承它的刹车模式
     g_display.draw("[AUTO]");
 }
 
@@ -57,6 +67,10 @@ void opcontrol() {
         const int left = g_master.get_analog(ANALOG_LEFT_Y);
         const int right = g_master.get_analog(ANALOG_RIGHT_Y);
         g_chassis.tank(left, right);
+
+        // 机构手动控制：滑轨 L2/L1、摇臂 R2/R1、爪 A、复原 B、取件 X。
+        // 不阻塞，必须在每圈里调；底盘那两行不要重复处理手柄。
+        controls::task();
 
         // 屏幕约 4Hz 刷新。写屏比想象中慢，每圈都画会把主循环拖到十几赫兹，
         // 表现就是「摇杆一动车要慢半拍」。

@@ -1,13 +1,9 @@
-#include "display.hpp"
+#include "ui/display.hpp"
 
 #include <cmath>
 
 Display::Display(Chassis& chassis, Robot& robot, pros::Controller& master)
     : m_chassis(chassis), m_robot(robot), m_master(master), m_peak_wheel_rpm(0.0) {
-}
-
-void Display::resetPeak() {
-    m_peak_wheel_rpm = 0.0;
 }
 
 void Display::draw(const char* mode) {
@@ -43,4 +39,8 @@ void Display::draw(const char* mode) {
     // 第 7 行：上电以来跑出过的最高轮速。测最高速就直道推满杆跑一段，回来看这里。
     pros::lcd::print(7, "PEAK %3.0f rpm", m_peak_wheel_rpm);
 
+}
+
+void Display::resetPeak() {
+    m_peak_wheel_rpm = 0.0;
 }

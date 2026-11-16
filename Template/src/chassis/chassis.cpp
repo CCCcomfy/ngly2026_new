@@ -1,10 +1,10 @@
-#include "chassis.hpp"
+#include "chassis/chassis.hpp"
 
 #include <algorithm>
 #include <cstdlib>
 #include <vector>
-#include "drive_curve.hpp"
-#include "robot_config.hpp"
+#include "chassis/drive_curve.hpp"
+#include "core/robot_config.hpp"
 
 namespace {
     // 单个电机功率的上下限

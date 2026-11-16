@@ -2,9 +2,9 @@
 
 #include "main.h"
 
-#include "chassis.hpp"
-#include "display.hpp"
-#include "robot.hpp"
+#include "chassis/chassis.hpp"
+#include "ui/display.hpp"
+#include "core/robot.hpp"
 
 // robot_config —— 车辆设置（车辆信息）
 class Config {
