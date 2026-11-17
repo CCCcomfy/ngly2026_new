@@ -76,17 +76,20 @@ bool mech::goTo(const Pose& p, int timeoutMs) {
 
 // 爪子用不等版本。主循环每 20ms 跑一次，被 180ms 卡住的话按一次键车会顿一下。
 void mech::goToAsync(const Pose& p) {
-    slide::toInchesAsync(p.slideIn);
-    arm::toAngleAsync(p.armDeg);
 
     if (p.clawClosed != claw::isClosed()) {
         if (p.clawClosed) {
-            claw::grabNoWait();
+            claw::grab();
         } else {
             claw::releaseNoWait();
         }
     }
-}
+        slide::toInchesAsync(p.slideIn);
+    arm::toAngleAsync(p.armDeg);
+
+
+    }
+
 
 bool mech::isBusy() { return slide::isBusy() || arm::isBusy(); }
 
