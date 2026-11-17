@@ -60,8 +60,7 @@ bool mech::goTo(const Pose& p, int timeoutMs) {
 
     const bool ok = !slide::isBusy() && !arm::isBusy();
     if (!ok) {
-        slide::stop();
-        arm::stop();
+       return false;
     }
 
     // 爪子最后动。状态已经一样就跳过，一次省 180ms
