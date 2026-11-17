@@ -8,7 +8,7 @@ constexpr std::uint8_t PORT_SLIDE_A = 11;
 constexpr std::uint8_t PORT_SLIDE_B = 12;
 constexpr std::uint8_t PORT_ARM_A = 13;
 constexpr std::uint8_t PORT_ARM_B = 14;
-constexpr char PORT_CLAW_SOL = 'A';  // 与队库 kClampPort 是同一个口
+constexpr char PORT_CLAW_SOL = 'A';  // ADI 三线口，单电磁阀（通电气缸夹紧）
 
 // 同轴双电机必有一个反转，否则通电即互相顶死。
 // 只接 A 确认方向，再接 B 给小行程，有异响就把对应项改 true。

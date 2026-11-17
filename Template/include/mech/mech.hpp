@@ -97,20 +97,7 @@ void printStatus(int row);
 // 机构单独调试，塞进 opcontrol 的 while 里，比赛前注释掉
 void testUpdate();
 
-// 替代队库 Robot 类的同名接口。两套同时用，气缸 'A' 口的状态必然对不上，
-// 把 g_robot.xxx() 换成 mech::xxx() 就能整块切过来。
-inline void liftUp() { slide::manual(SLIDE_MANUAL_UP_MV); }
-inline void liftDown() { slide::manual(SLIDE_MANUAL_DOWN_MV); }
-inline void liftStop() { slide::stop(); }
-inline void clampOpen() { claw::releaseNoWait(); }
-inline void clampClose() { claw::grabNoWait(); }
-inline void clampToggle() {
-    if (claw::isClosed()) {
-        claw::releaseNoWait();
-    } else {
-        claw::grabNoWait();
-    }
-}
+// 上层（屏幕等）只读的状态查询
 inline bool isClampClosed() { return claw::isClosed(); }
 
 }  // namespace mech

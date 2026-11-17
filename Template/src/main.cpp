@@ -3,7 +3,6 @@
 #include "chassis/chassis.hpp"
 #include "mech/controls.hpp"
 #include "mech/mech.hpp"
-#include "core/robot.hpp"
 #include "core/robot_config.hpp"
 
 /**
@@ -53,7 +52,6 @@ void competition_initialize() {
 void autonomous() {
     g_chassis.initialize();   // 编码器清零 + 刹车模式
     g_chassis.tareHeading();  // 朝向归零
-    g_robot.initialize();     // 队库 Robot 还没删，先保留：自动赛继承它的刹车模式
     g_display.draw("[AUTO]");
 }
 
@@ -64,9 +62,10 @@ void opcontrol() {
     int loop_count = 0;
 
     while (true) {
-        const int left = g_master.get_analog(ANALOG_LEFT_Y);
-        const int right = g_master.get_analog(ANALOG_RIGHT_Y);
-        g_chassis.tank(left, right);
+        // 街机式：左杆前后，右杆左右转向（右推右转）
+        const int power = g_master.get_analog(ANALOG_LEFT_Y);
+        const int turn = g_master.get_analog(ANALOG_RIGHT_X);
+        g_chassis.arcade(power, turn);
 
         // 机构手动控制：滑轨 L2/L1、摇臂 R2/R1、爪 A、复原 B、取件 X。
         // 不阻塞，必须在每圈里调；底盘那两行不要重复处理手柄。

@@ -31,7 +31,6 @@ double DriveCurve::apply(double input) const {
     const double g_max = kMaxInput - m_deadband;
 
     // 3. 指数整形。curveGain = 1 时退化成直线；越大中心越"软"。
-    //    幂指数是 (行程 - 127)，所以越靠近中位衰减得越狠、越靠近满量程越接近线性。
     const double i = std::pow(m_curve_gain, g - kMaxInput) * g * sign;
     const double i_max = std::pow(m_curve_gain, g_max - kMaxInput) * g_max;
 

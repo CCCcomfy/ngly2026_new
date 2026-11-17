@@ -2,8 +2,10 @@
 
 #include <cmath>
 
-Display::Display(Chassis& chassis, Robot& robot, pros::Controller& master)
-    : m_chassis(chassis), m_robot(robot), m_master(master), m_peak_wheel_rpm(0.0) {
+#include "mech/mech.hpp"
+
+Display::Display(Chassis& chassis, pros::Controller& master)
+    : m_chassis(chassis), m_master(master), m_peak_wheel_rpm(0.0) {
 }
 
 void Display::draw(const char* mode) {
@@ -24,8 +26,8 @@ void Display::draw(const char* mode) {
     // 第 4 行：同侧最热的电机温度。V5 电机到 55 度开始降功率，70 度停转
     pros::lcd::print(4, "TEMP %3d C", m_chassis.maxTemperature());
 
-    // 第 5 行：夹爪状态
-    pros::lcd::print(5, "CLAMP %s", m_robot.isClampClosed() ? "CLOSED" : "OPEN");
+    // 第 5 行：夹爪状态。读的是 claw 里记录的开合状态，和实际气阀一致
+    pros::lcd::print(5, "CLAMP %s", mech::isClampClosed() ? "CLOSED" : "OPEN");
 
     // 第 6 行：实际转速。左边两个数是电机侧 rpm，WHEEL 是折算到轮子上的转速。
     // 满杆应该是 200 / 200，WHEEL 是 333（60T 带 36T 增速）。
@@ -38,7 +40,6 @@ void Display::draw(const char* mode) {
 
     // 第 7 行：上电以来跑出过的最高轮速。测最高速就直道推满杆跑一段，回来看这里。
     pros::lcd::print(7, "PEAK %3.0f rpm", m_peak_wheel_rpm);
-
 }
 
 void Display::resetPeak() {
