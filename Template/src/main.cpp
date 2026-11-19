@@ -8,7 +8,8 @@
 /**
  * 只执行一次的入场准备。执行期间所有比赛模式都会被挡住，所以要快。
  */
-void initialize() {
+void initialize()
+{
     pros::lcd::initialize();
     g_display.draw("[BOOT]");
 
@@ -32,9 +33,10 @@ void initialize() {
  * 机器人处于「被禁用」状态时运行：赛前待机、自动结束到手动开始之间、断联之后。
  * 这里是唯一适合做「安全动作」的地方 —— 让所有机构停下来。
  */
-void disabled() {
+void disabled()
+{
     g_chassis.stop();
-    mech::emergencyStop();   // 滑轨刹车、摇臂原地托住，不是断电
+    mech::emergencyStop(); // 滑轨刹车、摇臂原地托住，不是断电
     g_display.draw("[DISABLED]");
 }
 
@@ -42,26 +44,42 @@ void disabled() {
  * 赛前钩子：只在接了比赛控制时运行，用来选自动方案、调参数。
  * 现在只有一套自动，所以留空；以后要做红 / 蓝 / AWP 选择就写在这里。
  */
-void competition_initialize() {
+void competition_initialize()
+{
 }
 
 /**
  * 自动阶段。跑在独立任务里，被禁用或断联时会被强行掐断。
  * 必须可重入：每次进来都当成脏状态，先归零再跑路径。
  */
-void autonomous() {
-    g_chassis.initialize();   // 编码器清零 + 刹车模式
-    g_chassis.tareHeading();  // 朝向归零
+void autonomous()
+{
+    g_chassis.initialize();  // 编码器清零 + 刹车模式
+    g_chassis.tareHeading(); // 朝向归零
+                             //  mech::init();
     g_display.draw("[AUTO]");
+
+    g_chassis.setPose(0, 0, 0);
+    g_chassis.driveDistance(1, 5000);
+    pros::delay(500);
+    g_chassis.turnTo(90, 3000);
+    //  mech::goTo(mech::TRAVEL,500);
+    pros::delay(500);
+    g_chassis.driveDistance(1.5, 5000);
+    //  mech::goTo(mech::TRAVEL,500);
+
+    g_chassis.stop();
 }
 
 // 手动赛
-void opcontrol() {
+void opcontrol()
+{
     g_display.draw("[OPCTRL]");
 
     int loop_count = 0;
 
-    while (true) {
+    while (true)
+    {
         // 街机式：左杆前后，右杆左右转向（右推右转）
         const int power = g_master.get_analog(ANALOG_LEFT_Y);
         const int turn = g_master.get_analog(ANALOG_RIGHT_X);
@@ -73,7 +91,8 @@ void opcontrol() {
 
         // 屏幕约 4Hz 刷新。写屏比想象中慢，每圈都画会把主循环拖到十几赫兹，
         // 表现就是「摇杆一动车要慢半拍」。
-        if (++loop_count % 12 == 0) {
+        if (++loop_count % 12 == 0)
+        {
             g_display.draw("[OPCTRL]");
         }
 
