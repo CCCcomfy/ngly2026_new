@@ -56,17 +56,35 @@ void autonomous()
 {
     g_chassis.initialize();  // 编码器清零 + 刹车模式
     g_chassis.tareHeading(); // 朝向归零
-                             //  mech::init();
     g_display.draw("[AUTO]");
 
     g_chassis.setPose(0, 0, 0);
-    g_chassis.driveDistance(1, 5000);
-    pros::delay(500);
-    g_chassis.turnTo(90, 3000);
-    //  mech::goTo(mech::TRAVEL,500);
-    pros::delay(500);
-    g_chassis.driveDistance(1.5, 5000);
-    //  mech::goTo(mech::TRAVEL,500);
+    g_chassis.driveDistance(1.28, 2000);
+    g_chassis.turnTo(90, 2000);
+    g_chassis.driveDistance(1, 2000);
+    mech::goTo(mech::LOW_GOAL, 2000); // 放初始pin
+
+    g_chassis.driveDistance(-1, 2000);
+    g_chassis.turnTo(45, 2000);
+    mech::goTo(mech::GROUND, 2000);
+    g_chassis.driveDistance(2.5, 5000);
+    claw::grab();
+
+    mech::goTo(mech::CARRY, 2000);
+    g_chassis.driveDistance(-1.25, 2000);
+    g_chassis.turnTo(135, 2000);
+    g_chassis.driveDistance(1.25, 2000);
+    mech::goTo(mech::STACK, 2000);
+    claw::release();
+
+    mech::goTo(mech::TRAVEL, 2000);
+    g_chassis.driveDistance(-1.25, 2000);
+    g_chassis.turnTo(225, 2000);
+    g_chassis.driveDistance(1.25, 2000);
+    g_chassis.turnTo(0, 2000);
+    g_chassis.driveDistance(-1.28, 2000);
+
+    g_chassis.driveDistance(0.5, 2000);
 
     g_chassis.stop();
 }
@@ -82,10 +100,8 @@ void opcontrol()
     {
         // 街机式：左杆前后，右杆左右转向（右推右转）
         const int power = g_master.get_analog(ANALOG_LEFT_Y);
-        const int de_power = g_master.get_analog(ANALOG_LEFT_X);
         const int turn = g_master.get_analog(ANALOG_RIGHT_X);
-        const int de_turn = g_master.get_analog(ANALOG_RIGHT_Y);
-        if(std::abs(de_power) < 20 && std::abs(de_turn) < 20) g_chassis.arcade(power, turn);
+        g_chassis.arcade(power, turn);
 
         // 机构手动控制：滑轨 L2/L1、摇臂 R2/R1、爪 A、复原 B、取件 X。
         // 不阻塞，必须在每圈里调；底盘那两行不要重复处理手柄。
