@@ -1,4 +1,4 @@
-// 气动爪（单阀单作用）。通电夹紧、断电排气弹簧顶开，只有两个状态。
+// 双作用缸 + 5/2 单电控阀，断电回默认位
 // 唯一要小心的是发指令到真正夹紧有时间差，这是"偶尔掉件"的来源。
 
 #include "mech/mech.hpp"
@@ -11,7 +11,7 @@ namespace {
 // PROS 3.8 里类名是 pros::ADIDigitalOut，没有 pros::adi:: 命名空间。
 pros::ADIDigitalOut solenoid(PORT_CLAW_SOL);
 
-// 程序记账，不代表气缸真的到位
+
 bool closed = false;
 
 }  // namespace

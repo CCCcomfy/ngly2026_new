@@ -79,7 +79,7 @@ void mech::goToAsync(const Pose& p) {
 
     if (p.clawClosed != claw::isClosed()) {
         if (p.clawClosed) {
-            claw::grab();
+            claw::grabNoWait();
         } else {
             claw::releaseNoWait();
         }

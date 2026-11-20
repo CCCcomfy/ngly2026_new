@@ -141,15 +141,22 @@ void slide::nudge(double deltaIn) {
 
 void slide::manual(int mv) {
     if (mv == 0) {
+        // 只有「确实在手动」才收尾。这一句挡的是：controls::task 每 20ms 无条件调一次
+        // manual(0)，如果不判断状态，它会顺手把 B / X 刚发出去的位姿指令掐掉。
+        if (!manualMode) {
+            return;
+        }
         manualMode = false;
-        stop();   // 竖直方向有自锁，松手刹车不会掉
+        stop();   // 齿条不自锁，不掉是因为 BRAKE_HOLD 在主动保持
         return;
     }
+
     manualMode = true;
     manualMv = static_cast<double>(mv);
     active = false;
     atTarget = false;
 }
+
 
 void slide::stop() {
     active = false;

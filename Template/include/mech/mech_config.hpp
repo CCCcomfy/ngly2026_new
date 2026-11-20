@@ -8,7 +8,7 @@ constexpr std::uint8_t PORT_SLIDE_A = 11;
 constexpr std::uint8_t PORT_SLIDE_B = 12;
 constexpr std::uint8_t PORT_ARM_A = 13;
 constexpr std::uint8_t PORT_ARM_B = 14;
-constexpr char PORT_CLAW_SOL = 'A';  // ADI 三线口，单电磁阀（通电气缸夹紧）
+constexpr char PORT_CLAW_SOL = 'A';  //双作用缸 + 5/2 单电控阀，断电回默认位
 
 // 同轴双电机必有一个反转，否则通电即互相顶死。
 // 只接 A 确认方向，再接 B 给小行程，有异响就把对应项改 true。
@@ -24,9 +24,9 @@ constexpr double ARM_MOTOR_DEG_PER_ARM_DEG = 5.0 / 3.0;
 // 软限位，实测后把 MAX 收到留 5° 余量。
 // ARM_MIN 必须小于 GROUND / TRAVEL 的角度，否则按键后停在半路。
 constexpr double SLIDE_MIN_IN = 0.0;
-constexpr double SLIDE_MAX_IN = 18.0;
-constexpr double ARM_MIN_DEG = -20.0;
-constexpr double ARM_MAX_DEG = 115.0;
+constexpr double SLIDE_MAX_IN = 28.0;
+constexpr double ARM_MIN_DEG = -50.0;
+constexpr double ARM_MAX_DEG = 60.0;
 
 constexpr double SLIDE_KP_MV_PER_IN = 900.0;
 constexpr double SLIDE_KG_MV = 700.0;  // 托住负载的基础电压
@@ -48,13 +48,13 @@ constexpr double SLIDE_SLEW_MV_PER_SEC = 40000.0;
 constexpr double ARM_SLEW_MV_PER_SEC = 22000.0;
 
 // 上升别给满压；下降有自重，全压会砸到底。
-constexpr int SLIDE_MANUAL_UP_MV = 6500;
-constexpr int SLIDE_MANUAL_DOWN_MV = -4000;
+constexpr int SLIDE_MANUAL_UP_MV = 7500;
+constexpr int SLIDE_MANUAL_DOWN_MV = -4500;
 constexpr int ARM_MANUAL_MV = 2500;
 
 // 通电到真正夹紧的时间。给少了会十几趟掉一趟件，而且不复现。
-constexpr int CLAW_ACT_MS = 180;
+constexpr int CLAW_ACT_MS = 220;
 
 constexpr double TEMP_LIMIT_C = 55.0;  // 超过降一半功率
-constexpr int ACTION_TIMEOUT_MS = 2500;
+constexpr int ACTION_TIMEOUT_MS = 3500;
 constexpr int UPDATE_PERIOD_MS = 10;

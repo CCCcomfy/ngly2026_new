@@ -9,7 +9,7 @@
 class Config {
 public:
     // 电机：左右各两个
-    static constexpr int kLeftFrontPort = 4;   // 左前
+    static constexpr int kLeftFrontPort = 7;   // 左前
     static constexpr int kLeftBackPort = 10;    // 左后
     static constexpr int kRightFrontPort = 2;  // 右前
     static constexpr int kRightBackPort = 5;   // 右后

@@ -146,11 +146,14 @@ void arm::nudge(double deltaDeg) {
 
 void arm::manual(int mv) {
     if (mv == 0) {
-        // 松手不是断电，是马上回闭环托住当前角度，否则臂会掉一截
+        if (!manualMode) {
+            return;      // 本来就没在手动，什么都不做
+        }
         manualMode = false;
         hold();
         return;
     }
+
     manualMode = true;
     manualMv = static_cast<double>(mv);
     active = false;

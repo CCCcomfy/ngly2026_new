@@ -22,8 +22,8 @@ void initialize() {
     // 最后收到行驶位。归零两轴各最多 3 秒，参数没标定时会一直撞，
     // 调试期先注释掉 home 和 goTo 这两行。
     mech::init();
-    mech::home();
-    mech::goTo(mech::TRAVEL, 1500);
+    // mech::home();
+    // mech::goTo(mech::TRAVEL, 1500);
 
     g_display.draw("[READY]");
 }
@@ -64,8 +64,10 @@ void opcontrol() {
     while (true) {
         // 街机式：左杆前后，右杆左右转向（右推右转）
         const int power = g_master.get_analog(ANALOG_LEFT_Y);
+        const int de_power = g_master.get_analog(ANALOG_LEFT_X);
         const int turn = g_master.get_analog(ANALOG_RIGHT_X);
-        g_chassis.arcade(power, turn);
+        const int de_turn = g_master.get_analog(ANALOG_RIGHT_Y);
+        if(std::abs(de_power) < 20 && std::abs(de_turn) < 20) g_chassis.arcade(power, turn);
 
         // 机构手动控制：滑轨 L2/L1、摇臂 R2/R1、爪 A、复原 B、取件 X。
         // 不阻塞，必须在每圈里调；底盘那两行不要重复处理手柄。
