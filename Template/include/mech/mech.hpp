@@ -74,8 +74,8 @@ struct Pose {
 // 六组预设位姿。全是估值，必须手动摆到位后抄屏幕读数改。
 // 角度为负 = 往车头方向下压，与 ARM_MIN/MAX 同一约定。
 inline constexpr Pose GROUND{0.0, -12.0, false};     // 取件
-inline constexpr Pose LOW_GOAL{6.0, 5.0, false};     // 低塔
-inline constexpr Pose TALL_GOAL{16.0, -8.0, false};  // 高塔
+inline constexpr Pose LOW_GOAL{15.0, 5.0, false};     // 低塔
+inline constexpr Pose TALL_GOAL{25.0, -8.0, false};  // 高塔
 inline constexpr Pose TRAVEL{0.0, -3.0, true};       // 行驶位
 inline constexpr Pose CARRY{4.0, 15.0, true};        // 搬运
 inline constexpr Pose STACK{10.0, 20.0, true};       // 叠放
@@ -95,7 +95,7 @@ void emergencyStop();
 void printStatus(int row);
 
 // 机构单独调试，塞进 opcontrol 的 while 里，比赛前注释掉
-void testUpdate();
+//void testUpdate();
 
 // 上层（屏幕等）只读的状态查询
 inline bool isClampClosed() { return claw::isClosed(); }
