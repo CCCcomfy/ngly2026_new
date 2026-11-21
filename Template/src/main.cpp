@@ -3,7 +3,7 @@
 #include "chassis/chassis.hpp"
 #include "mech/controls.hpp"
 #include "mech/mech.hpp"
-#include "core/robot_config.hpp"
+#include "chassis/chassis_config.hpp"
 #include "ui/debug.hpp"
 
 /**

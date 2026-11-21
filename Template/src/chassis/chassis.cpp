@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <vector>
 #include "chassis/drive_curve.hpp"
-#include "core/robot_config.hpp"
+#include "chassis/chassis_config.hpp"
 
 namespace {
     // 单个电机功率的上下限

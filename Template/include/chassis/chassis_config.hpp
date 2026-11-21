@@ -5,7 +5,8 @@
 #include "chassis/chassis.hpp"
 #include "ui/display.hpp"
 
-// robot_config —— 车辆设置（车辆信息）
+// chassis_config —— 底盘与车辆设置（端口、传动比、闭环参数、摇杆曲线）
+// 改车之后这里要跟着改的，基本只有端口和齿比两项。
 class Config {
 public:
     // 电机：左右各两个

@@ -4,7 +4,7 @@
 #include <cstring>
 
 #include "chassis/chassis.hpp"
-#include "core/robot_config.hpp"
+#include "chassis/chassis_config.hpp"
 
 namespace {
 
