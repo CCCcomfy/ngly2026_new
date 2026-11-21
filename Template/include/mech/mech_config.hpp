@@ -15,6 +15,12 @@ constexpr char PORT_CLAW_SOL = 'A';  //双作用缸 + 5/2 单电控阀，断电�
 constexpr bool SLIDE_B_REVERSED = true;
 constexpr bool ARM_B_REVERSED = true;
 
+// 整根滑轨轴的方向：true = 两个电机一起反转，让「正电压 = 升高」。
+// 编码器的符号会跟着一起翻，所以手动按键、PID 输出、软限位、归零判断
+// 用的是同一个方向约定 —— 实车装反了就只改这一条，不要去改
+// SLIDE_MANUAL_UP_MV / SLIDE_MANUAL_DOWN_MV 的正负号。
+constexpr bool SLIDE_DIR_REVERSED = true;
+
 // 实测：从 0 推到 10 英寸，读电机角度变化 Δ，填 10.0 / Δ。
 constexpr double SLIDE_IN_PER_DEG = 0.00972;
 

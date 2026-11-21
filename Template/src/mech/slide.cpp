@@ -60,7 +60,10 @@ inline double limited(double mv) {
 }  // namespace
 
 void slide::init() {
-    motorB.set_reversed(SLIDE_B_REVERSED);
+    // 整轴方向 + B 相对 A 的极性。写成异或的「相对关系」：
+    // 翻整轴（SLIDE_DIR_REVERSED）时，B 与 A 的相对极性保持不变。
+    motorA.set_reversed(SLIDE_DIR_REVERSED);
+    motorB.set_reversed(SLIDE_DIR_REVERSED != SLIDE_B_REVERSED);
     motorA.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     motorB.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
     motorA.tare_position();
