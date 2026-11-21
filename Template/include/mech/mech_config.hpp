@@ -51,7 +51,9 @@ constexpr double ARM_KG_MV = 3500.0;
 constexpr double ARM_TOL_DEG = 1.5;
 
 constexpr int SLIDE_MAX_MV = 10000;
-constexpr int ARM_MAX_MV = 10000;
+// V5 电机 move_voltage() 允许到 ±12000 mV，以前卡在 10000 等于白扔 17% 的力。
+// 抬臂吃力的车可以直接吃满：12 V 下堵转扭矩就是按满压算的。
+constexpr int ARM_MAX_MV = 12000;
 constexpr double SLIDE_SLEW_MV_PER_SEC = 40000.0;
 
 // 1.67:1 能跑到 720°/s，不限速会在 0.13 秒内把件甩出去。
@@ -65,6 +67,25 @@ constexpr double ARM_KD_MV_PER_DEG_PER_SEC = 25.0;
 // 松手后速度降到这个值以下，才从「速度环刹车」切回「位置环保持」。
 // 切太早：臂还带着速度，位置环一上来就是反向大电流，看起来像掉了一下再弹回来。
 constexpr double ARM_STOP_DPS = 12.0;
+
+// ------- 自动/保持阶段：位置 → 速度级联 -------
+// 位置误差先换算成「想要的角速度」，再交给速度环出电压。
+// 好处：重力前馈估低了，速度环的积分会自己把缺的电压补上；
+// 而位置环只负责「差多少度 → 想跑多快」，不会像纯位置 PID 那样靠误差硬凑电压。
+constexpr double ARM_POS_KP_DPS_PER_DEG = 7.0;   // 1 度误差 → 7 deg/s
+constexpr double ARM_HOLD_MAX_DPS = 90.0;        // 位置环最多要这么快
+
+// 保持阶段的速度环：KP 决定「下落越快，反向力矩越大」，KI 负责学出保持电压。
+// KP 从 100 起调；抖动就降到 70，掉得狠就加到 130。
+constexpr double ARM_HOLD_KP_MV_PER_DPS = 100.0;
+constexpr double ARM_HOLD_KI_MV_PER_DPS_SEC = 250.0;
+
+// 速度环积分的上限（单位 deg/s*s）。积分要替重力前馈补差额，
+// 估低 6000 mV 就得积分涨到 6000 —— 所以这个上限必须比位置环那档大得多。
+constexpr double ARM_HOLD_I_LIMIT_DPS_SEC = 60.0;
+
+// 输出已经顶满、但臂几乎不动 → 判定为堵转（力矩不够），屏幕显示 STALL。
+constexpr double ARM_STALL_DPS = 5.0;
 
 // 上升别给满压；下降有自重，全压会砸到底。
 constexpr int SLIDE_MANUAL_UP_MV = 7000;

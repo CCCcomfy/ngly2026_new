@@ -51,7 +51,14 @@ void Display::draw(const char* mode) {
     // 第 7 行：摇臂角度 + 实际写出去的电压 + 上电最高轮速。
     // 按 R1/R2 时 CMD 应跳到 ~±5000（抬臂还会再叠 ~+2200 的重力前馈）：
     // CMD 有数而臂不动 = 电机/机械问题；CMD 一直是 0 = 按键没进程序或控制任务没跑。
-    pros::lcd::print(7, "AR%6.1f CMD%5.0f PEAK%3.0f", arm::getAngle(), arm::lastCommandMv(), m_peak_wheel_rpm);
+    // 末尾 STALL = 电压已经顶满但臂几乎不动，也就是「力气不够」，不是控制参数问题。
+    char tail[8];
+    if (arm::isStalled()) {
+        std::snprintf(tail, sizeof(tail), "STALL");
+    } else {
+        std::snprintf(tail, sizeof(tail), "P%3.0f", m_peak_wheel_rpm);
+    }
+    pros::lcd::print(7, "AR%6.1f CMD%5.0f %s", arm::getAngle(), arm::lastCommandMv(), tail);
 }
 
 void Display::resetPeak() {

@@ -59,7 +59,7 @@ inline double clampd(double v, double lo, double hi) {
 // 目标阶跃把 D 项打满；积分带条件抗饱和，输出顶到限幅时不再继续积分。
 inline double pidStep(PidState& s, double err, double meas, double dt,
                       double kp, double ki, double kd, double ff,
-                      double lo, double hi) {
+                      double lo, double hi, double i_lim = ARM_I_LIMIT_DEG_SEC) {
     if (!s.hasPrev) {
         s.prevMeas = meas;
         s.hasPrev = true;
@@ -80,7 +80,7 @@ inline double pidStep(PidState& s, double err, double meas, double dt,
         }
     }
 
-    s.integral = clampd(integ, -ARM_I_LIMIT_DEG_SEC, ARM_I_LIMIT_DEG_SEC);
+    s.integral = clampd(integ, -i_lim, i_lim);
     s.prevMeas = meas;
     return out;
 }
@@ -92,10 +92,12 @@ inline double rawDeg() {
 }
 
 double lastCmdMv = 0.0;   // 最近一次真正写给电机的电压，给屏幕 CMD 读数用
+bool stalled = false;     // 电压顶满但臂不动：力矩不够（减速比 / 配重 / 机械卡死）
 
 inline void writeBoth(double mv) {
     const int32_t v = static_cast<int32_t>(mv);
     lastCmdMv = mv;
+    stalled = (std::fabs(mv) >= ARM_MAX_MV * 0.97) && (std::fabs(lastVel) < ARM_STALL_DPS);
     motorA.move_voltage(v);
     motorB.move_voltage(v);
 }
@@ -253,7 +255,7 @@ void arm::update() {
         return;
     }
     const double err = targetDeg - deg;
-    updateVelocity(deg);   // 给 hold 的第一拍刹车保留一个和角度同符号的速度
+    const double vel = updateVelocity(deg);   // 角度差分算角速度，下面速度环要用
 
     if (active) {
         // 误差够小还要稳 80ms，否则在临界点反复启停
@@ -280,14 +282,21 @@ void arm::update() {
         }
     }
 
-    // 位置 PID：P 负责刚度，I 补静摩擦/电池差异，D 压超调；重力前馈单独加。
+    // 位置 → 速度 → 电压，级联控制。
+    // 不直接用位置 PID 的原因：重力前馈 ARM_KG_MV 只是估算，估低了原来要靠误差去凑电压，
+    // 90 mV/deg 意味着少 2000 mV 就先掉下去 20 多度才被拉回来 —— 就是「到位后明显下降一截」。
+    // 改成速度环后，重力欠的那部分由速度环积分自己学出来：只要臂还在动，积分就一直往
+    // 该补的方向涨，掉多少由速度环带宽决定，而不是被位置环的 P 增益卡死。
+    // 另外速度环对「正在快速下落」天然敏感（KP 直接乘速度），下落速度越快，反向力矩越大。
+    const double vel_target = clampd(ARM_POS_KP_DPS_PER_DEG * err, -ARM_HOLD_MAX_DPS, ARM_HOLD_MAX_DPS);
+    const double kv = ARM_MANUAL_MV / ARM_MANUAL_MAX_DPS;
     const double temp = getTemperature();
     const double cap =
         (!std::isfinite(temp) || temp > TEMP_LIMIT_C) ? ARM_MAX_MV * 0.5 : ARM_MAX_MV;
-    const double out = pidStep(posPid, err, deg, kDt,
-                               ARM_KP_MV_PER_DEG, ARM_KI_MV_PER_DEG_SEC,
-                               ARM_KD_MV_PER_DEG_PER_SEC, gravityFeed(deg),
-                               -cap, cap);
+    const double out = pidStep(velPid, vel_target - vel, vel, kDt,
+                               ARM_HOLD_KP_MV_PER_DPS, ARM_HOLD_KI_MV_PER_DPS_SEC, 0.0,
+                               gravityFeed(deg) + kv * vel_target, -cap, cap,
+                               ARM_HOLD_I_LIMIT_DPS_SEC);
     writeBoth(limited(out));
 }
 
@@ -406,6 +415,8 @@ bool arm::sensorOk() { return std::isfinite(getAngle()); }
 bool arm::isZeroed() { return zeroed; }
 
 double arm::lastCommandMv() { return lastCmdMv; }
+
+bool arm::isStalled() { return stalled; }
 
 double arm::getAngle() { return rawDeg() - offsetDeg; }
 
