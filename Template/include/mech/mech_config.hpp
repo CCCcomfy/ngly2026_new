@@ -15,6 +15,10 @@ constexpr char PORT_CLAW_SOL = 'A';  //双作用缸 + 5/2 单电控阀，断电�
 constexpr bool SLIDE_B_REVERSED = true;
 constexpr bool ARM_B_REVERSED = true;
 
+// 整根滑轨轴的方向：true = 两个电机一起翻，让「正电压 = 上升」。
+// 只翻手动电压是不够的——归零往下顶用的是 -3000，PID 和限位也都按「正=上升」写的。
+constexpr bool SLIDE_DIR_REVERSED = true;
+
 // 实测：从 0 推到 10 英寸，读电机角度变化 Δ，填 10.0 / Δ。
 constexpr double SLIDE_IN_PER_DEG = 0.00972;
 
@@ -50,7 +54,9 @@ constexpr double ARM_SLEW_MV_PER_SEC = 22000.0;
 // 上升别给满压；下降有自重，全压会砸到底。
 constexpr int SLIDE_MANUAL_UP_MV = 7500;
 constexpr int SLIDE_MANUAL_DOWN_MV = -4500;
-constexpr int ARM_MANUAL_MV = 2500;
+// 手动电压。摇臂要叠加 ~2200 mV 的重力前馈才托得住，
+// 手动只给 2500 时抬臂的净输出只剩 300 mV，顶不过静摩擦 —— 看起来就是「按了没反应」。
+constexpr int ARM_MANUAL_MV = 5000;
 
 // 通电到真正夹紧的时间。给少了会十几趟掉一趟件，而且不复现。
 constexpr int CLAW_ACT_MS = 220;

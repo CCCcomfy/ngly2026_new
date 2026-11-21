@@ -25,13 +25,15 @@ void controls::task() {
     }
     slide::manual(slideMv);
 
-    // 摇臂：松手回闭环托住，不是断电——断电臂会砸下来
+    // 摇臂：松手回闭环托住，不是断电——断电臂会砸下来。
+    // 正电压 = 往上托（重力前馈就是这个方向），负电压 = 往下压，
+    // 归零 zeroByStall 也是写 -3000 往下顶，用的是同一个约定。
     int armMv = 0;
-    const bool armCw = g_master.get_digital(pros::E_CONTROLLER_DIGITAL_R2);   // 顺 = 下压
-    const bool armCcw = g_master.get_digital(pros::E_CONTROLLER_DIGITAL_R1);  // 逆 = 上抬
-    if (armCw && !armCcw) {
+    const bool armUp = g_master.get_digital(pros::E_CONTROLLER_DIGITAL_R1);    // 上抬
+    const bool armDown = g_master.get_digital(pros::E_CONTROLLER_DIGITAL_R2);  // 下压
+    if (armUp && !armDown) {
         armMv = ARM_MANUAL_MV;
-    } else if (armCcw && !armCw) {
+    } else if (armDown && !armUp) {
         armMv = -ARM_MANUAL_MV;
     }
     arm::manual(armMv);

@@ -40,8 +40,11 @@ inline double rawDeg() {
     return motorA.get_position() / ARM_MOTOR_DEG_PER_ARM_DEG;
 }
 
+double lastCmdMv = 0.0;   // 最近一次真正写给电机的电压，给屏幕 CMD 读数用
+
 inline void writeBoth(double mv) {
     const int32_t v = static_cast<int32_t>(mv);
+    lastCmdMv = mv;
     motorA.move_voltage(v);
     motorB.move_voltage(v);
 }
@@ -53,6 +56,10 @@ inline double gravityFeed(double deg) {
 }
 
 inline double limited(double mv) {
+    // 编码器没数时 err 可能算出 nan/inf；转成 int32 是未定义行为，会一脚踹满
+    if (!std::isfinite(mv)) {
+        mv = 0.0;
+    }
     const double cap = arm::getTemperature() > TEMP_LIMIT_C ? ARM_MAX_MV * 0.5 : ARM_MAX_MV;
     double out = clampd(mv, -cap, cap);
     const double step = ARM_SLEW_MV_PER_SEC * UPDATE_PERIOD_MS / 1000.0;
@@ -93,7 +100,10 @@ void arm::update() {
                 manualMv = 0;   // 软限位：快撞到头就断电，否则会顶弯结构
             }
         }
-        writeBoth(limited(manualMv));
+        // 手动也叠重力前馈：摇臂自重就要吃掉 ~2200 mV，
+        // 只写 manualMv 的话抬臂净输出只剩一小截，顶不动静摩擦。
+        const double assist = std::isfinite(deg) ? gravityFeed(deg) : 0.0;
+        writeBoth(limited(manualMv + assist));
         return;
     }
 
@@ -193,6 +203,8 @@ bool arm::isAtTarget() { return atTarget; }
 bool arm::sensorOk() { return std::isfinite(getAngle()); }
 
 bool arm::isZeroed() { return zeroed; }
+
+double arm::lastCommandMv() { return lastCmdMv; }
 
 double arm::getAngle() { return rawDeg() - offsetDeg; }
 

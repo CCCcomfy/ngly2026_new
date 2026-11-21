@@ -48,8 +48,10 @@ void Display::draw(const char* mode) {
     pros::lcd::print(6, "VEL L%4.0f R%4.0f  WHEEL %3.0f", m_chassis.leftVelocity(), m_chassis.rightVelocity(),
                      wheel);
 
-    // 第 7 行：上电以来跑出过的最高轮速。测最高速就直道推满杆跑一段，回来看这里。
-    pros::lcd::print(7, "PEAK %3.0f rpm", m_peak_wheel_rpm);
+    // 第 7 行：摇臂角度 + 实际写出去的电压 + 上电最高轮速。
+    // 按 R1/R2 时 CMD 应跳到 ~±5000（抬臂还会再叠 ~+2200 的重力前馈）：
+    // CMD 有数而臂不动 = 电机/机械问题；CMD 一直是 0 = 按键没进程序或控制任务没跑。
+    pros::lcd::print(7, "AR%6.1f CMD%5.0f PEAK%3.0f", arm::getAngle(), arm::lastCommandMv(), m_peak_wheel_rpm);
 }
 
 void Display::resetPeak() {

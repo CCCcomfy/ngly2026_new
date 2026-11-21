@@ -49,6 +49,7 @@ double getTemperature();
 
 bool sensorOk();   // 编码器读得到有效数：端口上确实插着电机
 bool isZeroed();   // 已经归零过：只有归零后软限位才生效
+double lastCommandMv();   // 最近一次写给臂电机的电压，排查「按键没到电机」用
 
 void tare();
 bool zeroByStall(int timeoutMs = 3000);
