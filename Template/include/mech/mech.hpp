@@ -67,6 +67,8 @@ bool isClosed();                   // 程序记账，不代表气缸真的到位
 
 void grabNoWait();                 // 只发指令不等，给需要自己控时序的场合
 void releaseNoWait();
+void toggleNoWait();               // 只翻阀，不等行程；A 键用这个
+bool isSettled();                  // 距离上一次开/合动作已过 CLAW_ACT_MS
 
 }  // namespace claw
 
@@ -97,7 +99,7 @@ bool taskRunning();   // 10ms 控制任务是否已经起来（没起来按键�
 void home();
 
 bool goTo(const Pose& p, int timeoutMs = 2500);  // false = 超时或参数越界
-void goToAsync(const Pose& p);                   // 只动两轴，爪子用不等版本
+void goToAsync(const Pose& p);                   // 非阻塞；按爪态自动排“先夹/先动”顺序
 
 bool isBusy();
 void emergencyStop();

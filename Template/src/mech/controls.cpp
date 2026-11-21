@@ -40,7 +40,7 @@ void controls::task() {
 
     // 爪子：new_press 只在按下那一帧为真，按住不会连发
     if (g_master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
-        claw::toggle();
+        claw::toggleNoWait();
     }
 
     // 复原：滑轨归底 + 摇臂贴回车头 + 爪闭合。行驶前、打完一件都按它

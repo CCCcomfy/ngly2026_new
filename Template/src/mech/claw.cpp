@@ -13,24 +13,38 @@ pros::ADIDigitalOut solenoid(PORT_CLAW_SOL);
 
 
 bool closed = false;
+std::uint32_t settleUntil = 0;   // 上一次开/合动作的预计到位时刻
+
+// 真正翻阀的唯一入口：状态没变就不重复发，避免每次按键都重等 220ms。
+void apply(bool close) {
+    if (close == closed) {
+        return;
+    }
+    solenoid.set_value(close);
+    closed = close;
+    settleUntil = pros::millis() + CLAW_ACT_MS;
+}
 
 }  // namespace
 
 void claw::init() {
-    // 上电先张开。上次断电时可能还夹着件，直接夹紧会夹碎或夹到自己结构
-    solenoid.set_value(false);
+    // 上电夹紧；断电时单电控 5/2 阀靠弹簧回默认位（张开），这是硬件行为。
     closed = false;
+    apply(true);
 }
 
 // 只发指令立刻返回。手柄别直接用，气缸没走完行程就抬臂会把件甩掉。
 void claw::grabNoWait() {
-    solenoid.set_value(true);
-    closed = true;
+    apply(true);
 }
 
 void claw::releaseNoWait() {
-    solenoid.set_value(false);
-    closed = false;
+    apply(false);
+}
+
+// A 键用：每次按下翻转当前状态，不阻塞主循环。
+void claw::toggleNoWait() {
+    apply(!closed);
 }
 
 // 180ms = 阀芯 20~30 + 气管充气 50~100 + 活塞行程 50~80 + 爪片贴合 10~20。
@@ -55,3 +69,7 @@ void claw::toggle() {
 }
 
 bool claw::isClosed() { return closed; }
+
+bool claw::isSettled() {
+    return static_cast<std::int32_t>(pros::millis() - settleUntil) >= 0;
+}
