@@ -10,7 +10,6 @@ namespace {
 
 pros::Controller* s_master = nullptr;
 char s_step[13] = "";       // 当前步骤名，最长 12 个字符
-bool s_failed = false;      // 最近一次动作是否失败
 char s_printed[3][16] = {}; // 已经写到屏幕上的三行内容
 
 // 写一行：先补空格到 15 列（不补的话短字符串盖不住上一帧的长字符串），
@@ -38,13 +37,19 @@ void refresh() {
     }
 
     const Chassis::Pose2D pose = g_chassis.getPose();
+    const char* action = g_chassis.autoAction();
+    const bool running = std::strcmp(action, "-") != 0;
+
     char buf[16];
 
-    // 第 0 行：状态位 + 步骤名。I = 还没开始跑步骤，A = 正在跑，! = 上一步失败
+    // 第 0 行：状态位 + 步骤名。
+    // 状态位直接问底盘「上一个动作到没到位」，不自己记账，
+    // 所以某一步超时之后，下一步成功跑完就会自动变回 A，不会一直挂着感叹号。
     if (s_step[0] == '\0') {
-        std::snprintf(buf, sizeof(buf), "%c IDLE", s_failed ? '!' : 'I');
+        std::snprintf(buf, sizeof(buf), "%c IDLE", running ? '>' : 'I');
     } else {
-        std::snprintf(buf, sizeof(buf), "%c %s", s_failed ? '!' : 'A', s_step);
+        const char status = running ? '>' : (g_chassis.lastActionOk() ? 'A' : '!');
+        std::snprintf(buf, sizeof(buf), "%c %s", status, s_step);
     }
     putLine(0, buf);
 
@@ -54,8 +59,7 @@ void refresh() {
 
     // 第 2 行：有动作在跑就显示误差（调 P 增益主要看这个残留值），
     // 空闲时显示朝向和电量 —— 电量低于 20% 时自动赛一致性会明显变差
-    const char* action = g_chassis.autoAction();
-    if (std::strcmp(action, "-") != 0) {
+    if (running) {
         std::snprintf(buf, sizeof(buf), "%s E%5.1f", action, g_chassis.autoError());
     } else {
         std::snprintf(buf, sizeof(buf), "H%3.0f B%3.0f%%", g_chassis.getHeading(),
@@ -88,9 +92,4 @@ void dbg::start(pros::Controller& master) {
 
 void dbg::step(const char* name) {
     std::snprintf(s_step, sizeof(s_step), "%s", name == nullptr ? "" : name);
-    s_failed = false;
-}
-
-void dbg::fail() {
-    s_failed = true;
 }

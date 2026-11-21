@@ -65,6 +65,9 @@ public:
     // 最近一次动作的实时误差：直行是英寸，转向是度。动作结束归 0。
     double autoError() const { return m_action_error; }
 
+    // 最近一次动作是否到位。false = 跑满超时也没进容差，给调试屏和自动赛判断用。
+    bool lastActionOk() const { return m_last_action_ok; }
+
     // ---- 状态查询
     double getHeading();                  // 当前朝向 [0, 360)
     double leftPosition();                // 左侧编码器原始值（同侧多电机取平均）
@@ -98,4 +101,5 @@ private:
 
     const char* m_action = "-";   // 最近一次自动动作名（给调试屏）
     double m_action_error = 0.0;  // 该动作的实时误差
+    bool m_last_action_ok = true; // 最近一次动作是否到位
 };

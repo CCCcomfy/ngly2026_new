@@ -65,50 +65,37 @@ void autonomous()
     g_chassis.tareHeading(); // 朝向归零
     g_display.draw("[AUTO]");
 
-    // 底盘动作统一走这两个壳：超时就把失败标到屏幕上。
-    // 超时说明参数不匹配（轮径 / 增益 / 时间给太短），后面的路径基本都会跟着歪。
-    auto drive = [](double inches, int timeout_ms) {
-        if (!g_chassis.driveDistance(inches, timeout_ms)) {
-            dbg::fail();
-        }
-    };
-    auto turn = [](double deg, int timeout_ms) {
-        if (!g_chassis.turnTo(deg, timeout_ms)) {
-            dbg::fail();
-        }
-    };
-
     g_chassis.setPose(0, 0, 0);
 
     dbg::step("PIN"); // 放初始 pin
-    drive(1.28, 2000);
-    turn(90, 2000);
-    drive(1, 2000);
+    g_chassis.driveDistance(1.28, 2000);
+    g_chassis.turnTo(90, 2000);
+    g_chassis.driveDistance(1, 2000);
     mech::goTo(mech::LOW_GOAL, 2000);
 
     dbg::step("GRAB"); // 退出来取第一个块
-    drive(-1, 2000);
-    turn(45, 2000);
+    g_chassis.driveDistance(-1, 2000);
+    g_chassis.turnTo(45, 2000);
     mech::goTo(mech::GROUND, 2000);
-    drive(2.5, 5000);
+    g_chassis.driveDistance(2.5, 5000);
     claw::grab();
     mech::goTo(mech::CARRY, 2000);
 
     dbg::step("STACK"); // 回场地中间堆叠
-    drive(-1.25, 2000);
-    turn(135, 2000);
-    drive(1.25, 2000);
+    g_chassis.driveDistance(-1.25, 2000);
+    g_chassis.turnTo(135, 2000);
+    g_chassis.driveDistance(1.25, 2000);
     mech::goTo(mech::STACK, 2000);
     claw::release();
     mech::goTo(mech::TRAVEL, 2000);
 
     dbg::step("HOME"); // 收车
-    drive(-1.25, 2000);
-    turn(225, 2000);
-    drive(1.25, 2000);
-    turn(0, 2000);
-    drive(-1.28, 2000);
-    drive(0.5, 2000);
+    g_chassis.driveDistance(-1.25, 2000);
+    g_chassis.turnTo(225, 2000);
+    g_chassis.driveDistance(1.25, 2000);
+    g_chassis.turnTo(0, 2000);
+    g_chassis.driveDistance(-1.28, 2000);
+    g_chassis.driveDistance(0.5, 2000);
 
     dbg::step("DONE");
     g_chassis.stop();

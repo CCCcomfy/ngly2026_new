@@ -164,6 +164,7 @@ bool Chassis::turnTo(double target_deg, int timeout_ms) {
             stop();
             m_action = "-";
             m_action_error = 0.0;
+            m_last_action_ok = true;
             return true;
         }
 
@@ -182,6 +183,7 @@ bool Chassis::turnTo(double target_deg, int timeout_ms) {
     stop();
     m_action = "-";
     m_action_error = 0.0;
+    m_last_action_ok = false;
     return false;
 }
 
@@ -194,6 +196,9 @@ bool Chassis::driveDistance(double inches, int timeout_ms) {
     std::uint32_t prev_ms = pros::millis();
     const std::uint32_t start_ms = prev_ms;
 
+    double best_err = std::fabs(inches);  // 到目前为止最接近目标时差多少
+    std::uint32_t stale_since = 0;        // 误差开始不再变小的时刻
+
     while (pros::millis() - start_ms < static_cast<std::uint32_t>(timeout_ms)) {
         const double traveled = travelInches() - start_travel;
         const double err = inches - traveled;
@@ -203,7 +208,27 @@ bool Chassis::driveDistance(double inches, int timeout_ms) {
             stop();
             m_action = "-";
             m_action_error = 0.0;
+            m_last_action_ok = true;
             return true;
+        }
+
+        // 保险丝：误差快 1 秒没再缩小了。常见原因是编码器线松了 / 左右方向反了 /
+        // 车被卡住 —— 这时候继续给输出只会撞墙或原地空转，直接判失败退出。
+        const double abs_err = std::fabs(err);
+        const std::uint32_t now_ms = pros::millis();
+        if (abs_err < best_err - 0.05) {
+            best_err = abs_err;
+            stale_since = 0;
+        } else if (now_ms - start_ms > 500) {
+            if (stale_since == 0) {
+                stale_since = now_ms;
+            } else if (now_ms - stale_since > 700) {
+                stop();
+                m_action = "-";
+                m_action_error = 0.0;
+                m_last_action_ok = false;
+                return false;
+            }
         }
 
         // 位置环：误差越大越快，超时前一直朝目标爬
@@ -231,6 +256,7 @@ bool Chassis::driveDistance(double inches, int timeout_ms) {
     stop();
     m_action = "-";
     m_action_error = 0.0;
+    m_last_action_ok = false;
     return false;
 }
 
