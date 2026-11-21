@@ -28,6 +28,11 @@ constexpr double SLIDE_MAX_IN = 2.0;
 constexpr double ARM_MIN_DEG = -50.0;
 constexpr double ARM_MAX_DEG = 60.0;
 
+// 上电后自动把滑轨归零（慢速往下顶到堵转）。
+// 归零之前，编码器的 0 只是「上电时停在哪」，拿它去卡上下限毫无意义，
+// 所以在归零完成前软限位是关着的 —— 这就是「限高失效」的直接原因。
+constexpr bool SLIDE_AUTO_ZERO_ON_BOOT = true;
+
 constexpr double SLIDE_KP_MV_PER_IN = 900.0;
 constexpr double SLIDE_KG_MV = 700.0;  // 托住负载的基础电压
 constexpr double SLIDE_TOL_IN = 0.2;

@@ -20,6 +20,15 @@ void ctrlLoop(void*) {
     }
 }
 
+// 后台归零：不阻塞 initialize()，等 IMU 校准那一套走完再动。
+// 只归滑轨 —— 摇臂的归零会往下压到机械限位，放到自动流程里更安全。
+void autoZeroTask(void*) {
+    pros::delay(1500);
+    if (!slide::isZeroed()) {
+        slide::zeroByStall();
+    }
+}
+
 }  // namespace
 
 void mech::init() {
@@ -27,6 +36,12 @@ void mech::init() {
     slide::init();
     arm::init();
     startTask();
+
+    // 滑轨上电自归零：归零之后软限位（SLIDE_MIN_IN ~ SLIDE_MAX_IN）才真正生效。
+    // 不想让它上电就动，把 mech_config.hpp 里的 SLIDE_AUTO_ZERO_ON_BOOT 改成 false。
+    if (SLIDE_AUTO_ZERO_ON_BOOT) {
+        new pros::Task(autoZeroTask, nullptr, "mzro");
+    }
 }
 
 void mech::startTask() {
