@@ -22,6 +22,9 @@ bool isAtTarget();
 double getInches();
 double getTemperature();
 
+bool sensorOk();   // 编码器读得到有效数：端口上确实插着电机
+bool isZeroed();   // 已经归零过：只有归零后软限位才生效
+
 void tare();
 bool zeroByStall(int timeoutMs = 3000);   // 慢速下到底，堵转处定为 0
 
@@ -43,6 +46,9 @@ bool isBusy();
 bool isAtTarget();
 double getAngle();
 double getTemperature();
+
+bool sensorOk();   // 编码器读得到有效数：端口上确实插着电机
+bool isZeroed();   // 已经归零过：只有归零后软限位才生效
 
 void tare();
 bool zeroByStall(int timeoutMs = 3000);
@@ -82,6 +88,8 @@ inline constexpr Pose STACK{10.0, 20.0, true};       // 叠放
 
 void init();
 void startTask();
+
+bool taskRunning();   // 10ms 控制任务是否已经起来（没起来按键就只会改标志）
 
 // 上电归零，两轴各最多 3 秒，只在 initialize() 里调一次。
 // 先滑轨后摇臂：滑轨降到底之后摇臂的转动空间最大。

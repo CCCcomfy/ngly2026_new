@@ -36,6 +36,9 @@ void mech::startTask() {
     }
 }
 
+// 控制任务到底起没起来。没起来的话，按键只会改标志、永远没有电机动作。
+bool mech::taskRunning() { return ctrlTask != nullptr; }
+
 void mech::home() {
     slide::zeroByStall();   // 先降到底，摇臂才有转动空间
     arm::zeroByStall();

@@ -27,6 +27,9 @@ double manualMv = 0.0;
 std::uint32_t startMs = 0;
 std::uint32_t settleMs = 0;
 
+// 是否归零过：没归零时 getAngle() 的 0 不代表真实角度，软限位不能用它判断。
+bool zeroed = false;
+
 constexpr double kPi = 3.14159265358979323846;
 
 inline double clampd(double v, double lo, double hi) {
@@ -74,15 +77,21 @@ void arm::init() {
     lastOutMv = 0.0;
     manualMode = false;
     manualMv = 0.0;
+    zeroed = false;   // 刚上电，角度不可信
 }
 
 void arm::update() {
     // 手动直通模式：绕开 PID，但仍然保留限位、过温和 slew
     // 手柄推着摇臂走的时候走这条分支；松手立刻切回 PID 托住。
     if (manualMode) {
+        // 软限位只在「归零过 + 编码器有数」时才生效。
+        // 没归零时 0 度不代表真实角度；端口没插电机时 getAngle() 会算出 inf/nan。
+        // 否则按键一按就被判越界清零，看起来就是「按键没反应」。
         const double deg = getAngle();
-        if ((deg <= ARM_MIN_DEG && manualMv < 0) || (deg >= ARM_MAX_DEG && manualMv > 0)) {
-            manualMv = 0;   // 软限位：快撞到头就断电，否则会顶弯结构
+        if (zeroed && std::isfinite(deg)) {
+            if ((deg <= ARM_MIN_DEG && manualMv < 0) || (deg >= ARM_MAX_DEG && manualMv > 0)) {
+                manualMv = 0;   // 软限位：快撞到头就断电，否则会顶弯结构
+            }
         }
         writeBoth(limited(manualMv));
         return;
@@ -181,6 +190,10 @@ bool arm::isBusy() { return active; }
 
 bool arm::isAtTarget() { return atTarget; }
 
+bool arm::sensorOk() { return std::isfinite(getAngle()); }
+
+bool arm::isZeroed() { return zeroed; }
+
 double arm::getAngle() { return rawDeg() - offsetDeg; }
 
 double arm::getTemperature() {
@@ -190,6 +203,7 @@ double arm::getTemperature() {
 void arm::tare() {
     offsetDeg = rawDeg();
     targetDeg = 0.0;
+    zeroed = true;   // 从这里开始，角度才是真实角度
 }
 
 // 慢速往下压，撞到机械限位后速度归零，把那个位置定义成 ARM_MIN_DEG。
@@ -212,6 +226,7 @@ bool arm::zeroByStall(int timeoutMs) {
                 targetDeg = ARM_MIN_DEG;
                 holding = true;
                 atTarget = true;
+                zeroed = true;   // 压到底了，ARM_MIN_DEG 就是真实下限
                 return true;
             }
         } else {

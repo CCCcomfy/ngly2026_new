@@ -26,8 +26,18 @@ void Display::draw(const char* mode) {
     // 第 4 行：同侧最热的电机温度。V5 电机到 55 度开始降功率，70 度停转
     pros::lcd::print(4, "TEMP %3d C", m_chassis.maxTemperature());
 
-    // 第 5 行：夹爪状态。读的是 claw 里记录的开合状态，和实际气阀一致
-    pros::lcd::print(5, "CLAMP %s", mech::isClampClosed() ? "CLOSED" : "OPEN");
+    // 第 5 行：机构状态。控制任务没起来、或者某个轴编码器读不到数时直接报错，
+    // 别再显示一个看着正常的 CLAMP —— 这种「一切正常」的样子最容易误导排查。
+    if (!mech::taskRunning()) {
+        pros::lcd::print(5, "MECH TASK NOT RUNNING");
+    } else if (!slide::sensorOk()) {
+        pros::lcd::print(5, "SLIDE ENCODER ERR");
+    } else if (!arm::sensorOk()) {
+        pros::lcd::print(5, "ARM ENCODER ERR");
+    } else {
+        pros::lcd::print(5, "SL%5.1f AR%4.0f CLAMP %s", slide::getInches(), arm::getAngle(),
+                         mech::isClampClosed() ? "C" : "O");
+    }
 
     // 第 6 行：实际转速。左边两个数是电机侧 rpm，WHEEL 是折算到轮子上的转速。
     // 满杆应该是 200 / 200，WHEEL 是 333（60T 带 36T 增速）。
