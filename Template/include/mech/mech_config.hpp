@@ -15,12 +15,6 @@ constexpr char PORT_CLAW_SOL = 'A';  //双作用缸 + 5/2 单电控阀，断电�
 constexpr bool SLIDE_B_REVERSED = true;
 constexpr bool ARM_B_REVERSED = true;
 
-// 整根滑轨轴的方向：true = 两个电机一起反转，让「正电压 = 升高」。
-// 编码器的符号会跟着一起翻，所以手动按键、PID 输出、软限位、归零判断
-// 用的是同一个方向约定 —— 实车装反了就只改这一条，不要去改
-// SLIDE_MANUAL_UP_MV / SLIDE_MANUAL_DOWN_MV 的正负号。
-constexpr bool SLIDE_DIR_REVERSED = true;
-
 // 实测：从 0 推到 10 英寸，读电机角度变化 Δ，填 10.0 / Δ。
 constexpr double SLIDE_IN_PER_DEG = 0.00972;
 
@@ -33,11 +27,6 @@ constexpr double SLIDE_MIN_IN = 0.0;
 constexpr double SLIDE_MAX_IN = 2.0;
 constexpr double ARM_MIN_DEG = -50.0;
 constexpr double ARM_MAX_DEG = 60.0;
-
-// 上电后自动把滑轨归零（慢速往下顶到堵转）。
-// 归零之前，编码器的 0 只是「上电时停在哪」，拿它去卡上下限毫无意义，
-// 所以在归零完成前软限位是关着的 —— 这就是「限高失效」的直接原因。
-constexpr bool SLIDE_AUTO_ZERO_ON_BOOT = true;
 
 constexpr double SLIDE_KP_MV_PER_IN = 900.0;
 constexpr double SLIDE_KG_MV = 700.0;  // 托住负载的基础电压

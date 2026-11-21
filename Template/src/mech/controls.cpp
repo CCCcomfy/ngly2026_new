@@ -16,8 +16,8 @@ void controls::task() {
 
     // 滑轨：两个键都按等于停，而不是后一个覆盖前一个
     int slideMv = 0;
-    const bool slideUp = g_master.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
-    const bool slideDn = g_master.get_digital(pros::E_CONTROLLER_DIGITAL_L1);
+    const bool slideUp = g_master.get_digital(pros::E_CONTROLLER_DIGITAL_L1);
+    const bool slideDn = g_master.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
     if (slideUp && !slideDn) {
         slideMv = SLIDE_MANUAL_UP_MV;
     } else if (slideDn && !slideUp) {
