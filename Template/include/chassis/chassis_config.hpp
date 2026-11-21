@@ -12,8 +12,8 @@ public:
     // 电机：左右各两个
     static constexpr int kLeftFrontPort = 7;   // 左前
     static constexpr int kLeftBackPort = 10;    // 左后
-    static constexpr int kRightFrontPort = 2;  // 右前
-    static constexpr int kRightBackPort = 5;   // 右后
+    static constexpr int kRightFrontPort = 5;  // 右前
+    static constexpr int kRightBackPort = 16;   // 右后
 
     static constexpr pros::motor_gearset_e_t kDriveGearset = pros::E_MOTOR_GEARSET_18;  // 绿 200rpm
     // 底盘最高转速（rpm），必须和上面的齿轮箱对上：绿 18:1 = 200、红 36:1 = 100、蓝 6:1 = 600。
@@ -23,7 +23,7 @@ public:
     static constexpr double kDriveGearRatio = 5.0 / 3.0;
 
     // 传感器
-    static constexpr int kImuPort = 6;
+    static constexpr int kImuPort = 21;
 
     // ---- 自动赛 / 里程计。这三行必须上车量，量错了所有路径都按比例歪 ----------
     static constexpr double kWheelDiameterIn = 3.25;  // 轮子直径（英寸），磨过就重新量
@@ -41,7 +41,7 @@ public:
     static constexpr double kTurnKp = 2.0;         // rpm / 度
     static constexpr double kTurnMaxRpm = 120.0;   // 上限，太快会过冲
     static constexpr double kTurnMinRpm = 12.0;    // 下限，太小顶不动静摩擦
-    static constexpr double kTurnTolDeg = 1.5;     // 到位判定（度）
+    static constexpr double kTurnTolDeg = 0.4;     // 到位判定（度）
 
     // 直线闭环（driveDistance）
     static constexpr double kDriveKp = 6.0;        // rpm / 英寸

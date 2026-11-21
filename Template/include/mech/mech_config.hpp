@@ -21,10 +21,10 @@ constexpr double SLIDE_IN_PER_DEG = 0.00972;
 // 电机 5 圈 = 臂 3 圈。1.67:1 转速快、扭矩小，托举力只有 5:1 方案的三分之一，这个后面实测再改
 constexpr double ARM_MOTOR_DEG_PER_ARM_DEG = 5.0 / 3.0;
 
-// 软限位，实测后把 MAX 收到留 5° 余量。
+// 软限位32，实测后把 MAX 收到留 5° 余量。
 // ARM_MIN 必须小于 GROUND / TRAVEL 的角度，否则按键后停在半路。
 constexpr double SLIDE_MIN_IN = 0.0;
-constexpr double SLIDE_MAX_IN = 28.0;
+constexpr double SLIDE_MAX_IN = 2.0;
 constexpr double ARM_MIN_DEG = -50.0;
 constexpr double ARM_MAX_DEG = 60.0;
 

@@ -71,34 +71,32 @@ void autonomous()
     g_chassis.setPose(0, 0, 0);
 
     dbg::step("PIN"); // 放初始 pin
-    g_chassis.driveDistance(1.28, 2000);
+    g_chassis.driveDistance(26.4, 2000);
     g_chassis.turnTo(90, 2000);
-    g_chassis.driveDistance(1, 2000);
-    mech::goTo(mech::LOW_GOAL, 2000);
+    g_chassis.driveDistance(22, 2000);
+    //mech::goTo(mech::LOW_GOAL, 2000);
 
-    dbg::step("GRAB"); // 退出来取第一个块
-    g_chassis.driveDistance(-1, 2000);
+    //dbg::step("GRAB"); // 退出来取第一个块
+    g_chassis.driveDistance(-22, 2000);
     g_chassis.turnTo(45, 2000);
-    mech::goTo(mech::GROUND, 2000);
-    g_chassis.driveDistance(2.5, 5000);
-    claw::grab();
-    mech::goTo(mech::CARRY, 2000);
+    //mech::goTo(mech::GROUND, 2000);
+    g_chassis.driveDistance(55, 5000);
+    //claw::grab();
+    //mech::goTo(mech::CARRY, 2000);
 
-    dbg::step("STACK"); // 回场地中间堆叠
-    g_chassis.driveDistance(-1.25, 2000);
-    g_chassis.turnTo(135, 2000);
-    g_chassis.driveDistance(1.25, 2000);
-    mech::goTo(mech::STACK, 2000);
-    claw::release();
-    mech::goTo(mech::TRAVEL, 2000);
+    //dbg::step("STACK"); // 回场地中间堆叠
+    g_chassis.driveDistance(-55, 2000);
+    g_chassis.turnTo(90, 2000);
+    g_chassis.driveDistance(22, 2000);
+    //mech::goTo(mech::STACK, 2000);
+    //claw::release();
+    //mech::goTo(mech::TRAVEL, 2000);
 
-    dbg::step("HOME"); // 收车
-    g_chassis.driveDistance(-1.25, 2000);
-    g_chassis.turnTo(225, 2000);
-    g_chassis.driveDistance(1.25, 2000);
+    //dbg::step("HOME"); // 收车
+    g_chassis.driveDistance(-22, 2000);
     g_chassis.turnTo(0, 2000);
-    g_chassis.driveDistance(-1.28, 2000);
-    g_chassis.driveDistance(0.5, 2000);
+    g_chassis.driveDistance(-28, 2000);
+    g_chassis.driveDistance(5, 2000);
 
     dbg::step("DONE");
     g_chassis.stop();
