@@ -4,6 +4,7 @@
 #include "mech/controls.hpp"
 #include "mech/mech.hpp"
 #include "core/robot_config.hpp"
+#include "ui/debug.hpp"
 
 /**
  * 只执行一次的入场准备。执行期间所有比赛模式都会被挡住，所以要快。
@@ -18,6 +19,9 @@ void initialize()
     g_chassis.resetImu();
 
     g_chassis.initialize();
+
+    // 手柄调试屏：起一个 5Hz 的后台任务，自动赛里不用再管它画屏
+    dbg::start(g_master);
 
     // 机构上电：先起控制任务，再归零（滑轨降到堵转、摇臂压到限位），
     // 最后收到行驶位。归零两轴各最多 3 秒，参数没标定时会一直撞，
@@ -51,6 +55,9 @@ void competition_initialize()
 /**
  * 自动阶段。跑在独立任务里，被禁用或断联时会被强行掐断。
  * 必须可重入：每次进来都当成脏状态，先归零再跑路径。
+ *
+ * 调试：手柄屏第 0 行显示当前步骤名，超时时变成 "!"（步骤名保留），
+ * 第 2 行是这一步的实时误差，调参数时主要看它能不能收敛到 0 附近。
  */
 void autonomous()
 {
@@ -58,34 +65,52 @@ void autonomous()
     g_chassis.tareHeading(); // 朝向归零
     g_display.draw("[AUTO]");
 
+    // 底盘动作统一走这两个壳：超时就把失败标到屏幕上。
+    // 超时说明参数不匹配（轮径 / 增益 / 时间给太短），后面的路径基本都会跟着歪。
+    auto drive = [](double inches, int timeout_ms) {
+        if (!g_chassis.driveDistance(inches, timeout_ms)) {
+            dbg::fail();
+        }
+    };
+    auto turn = [](double deg, int timeout_ms) {
+        if (!g_chassis.turnTo(deg, timeout_ms)) {
+            dbg::fail();
+        }
+    };
+
     g_chassis.setPose(0, 0, 0);
-    g_chassis.driveDistance(1.28, 2000);
-    g_chassis.turnTo(90, 2000);
-    g_chassis.driveDistance(1, 2000);
-    mech::goTo(mech::LOW_GOAL, 2000); // 放初始pin
 
-    g_chassis.driveDistance(-1, 2000);
-    g_chassis.turnTo(45, 2000);
+    dbg::step("PIN"); // 放初始 pin
+    drive(1.28, 2000);
+    turn(90, 2000);
+    drive(1, 2000);
+    mech::goTo(mech::LOW_GOAL, 2000);
+
+    dbg::step("GRAB"); // 退出来取第一个块
+    drive(-1, 2000);
+    turn(45, 2000);
     mech::goTo(mech::GROUND, 2000);
-    g_chassis.driveDistance(2.5, 5000);
+    drive(2.5, 5000);
     claw::grab();
-
     mech::goTo(mech::CARRY, 2000);
-    g_chassis.driveDistance(-1.25, 2000);
-    g_chassis.turnTo(135, 2000);
-    g_chassis.driveDistance(1.25, 2000);
+
+    dbg::step("STACK"); // 回场地中间堆叠
+    drive(-1.25, 2000);
+    turn(135, 2000);
+    drive(1.25, 2000);
     mech::goTo(mech::STACK, 2000);
     claw::release();
-
     mech::goTo(mech::TRAVEL, 2000);
-    g_chassis.driveDistance(-1.25, 2000);
-    g_chassis.turnTo(225, 2000);
-    g_chassis.driveDistance(1.25, 2000);
-    g_chassis.turnTo(0, 2000);
-    g_chassis.driveDistance(-1.28, 2000);
 
-    g_chassis.driveDistance(0.5, 2000);
+    dbg::step("HOME"); // 收车
+    drive(-1.25, 2000);
+    turn(225, 2000);
+    drive(1.25, 2000);
+    turn(0, 2000);
+    drive(-1.28, 2000);
+    drive(0.5, 2000);
 
+    dbg::step("DONE");
     g_chassis.stop();
 }
 

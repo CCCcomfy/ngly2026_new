@@ -154,12 +154,16 @@ void Chassis::setPose(double x, double y, double theta) {
 
 bool Chassis::turnTo(double target_deg, int timeout_ms) {
     const std::uint32_t start_ms = pros::millis();
+    m_action = "TURN";
 
     while (pros::millis() - start_ms < static_cast<std::uint32_t>(timeout_ms)) {
         const double err = wrap180(target_deg - getHeading());
+        m_action_error = err;  // 给调试屏：还差多少度
 
         if (std::fabs(err) < Config::kTurnTolDeg) {
             stop();
+            m_action = "-";
+            m_action_error = 0.0;
             return true;
         }
 
@@ -176,12 +180,15 @@ bool Chassis::turnTo(double target_deg, int timeout_ms) {
     }
 
     stop();
+    m_action = "-";
+    m_action_error = 0.0;
     return false;
 }
 
 bool Chassis::driveDistance(double inches, int timeout_ms) {
     const double start_travel = travelInches();
     const double start_heading = getHeading();
+    m_action = "DRV";
 
     double prev_out = 0.0;
     std::uint32_t prev_ms = pros::millis();
@@ -190,9 +197,12 @@ bool Chassis::driveDistance(double inches, int timeout_ms) {
     while (pros::millis() - start_ms < static_cast<std::uint32_t>(timeout_ms)) {
         const double traveled = travelInches() - start_travel;
         const double err = inches - traveled;
+        m_action_error = err;  // 给调试屏：还差多少英寸
 
         if (std::fabs(err) < Config::kDriveTolIn) {
             stop();
+            m_action = "-";
+            m_action_error = 0.0;
             return true;
         }
 
@@ -219,6 +229,8 @@ bool Chassis::driveDistance(double inches, int timeout_ms) {
     }
 
     stop();
+    m_action = "-";
+    m_action_error = 0.0;
     return false;
 }
 

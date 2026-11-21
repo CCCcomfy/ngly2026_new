@@ -58,6 +58,13 @@ public:
     // 里程计刷新。内部 10ms 任务调用，业务代码不用管。
     void updateOdometry();
 
+    // 最近一次自动动作，给手柄调试屏用。
+    // 动作名："DRV"（直行）/ "TURN"（转向）/ "-"（空闲）
+    const char* autoAction() const { return m_action; }
+
+    // 最近一次动作的实时误差：直行是英寸，转向是度。动作结束归 0。
+    double autoError() const { return m_action_error; }
+
     // ---- 状态查询
     double getHeading();                  // 当前朝向 [0, 360)
     double leftPosition();                // 左侧编码器原始值（同侧多电机取平均）
@@ -88,4 +95,7 @@ private:
     double m_last_right_in = 0.0;
     bool m_odom_ready = false;  // 第一次采样只做基准，不产生位移
     bool m_odom_started = false;
+
+    const char* m_action = "-";   // 最近一次自动动作名（给调试屏）
+    double m_action_error = 0.0;  // 该动作的实时误差
 };
