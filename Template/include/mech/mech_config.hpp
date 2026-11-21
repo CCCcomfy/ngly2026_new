@@ -55,14 +55,16 @@ constexpr int ARM_MAX_MV = 10000;
 constexpr double SLIDE_SLEW_MV_PER_SEC = 40000.0;
 
 // 1.67:1 能跑到 720°/s，不限速会在 0.13 秒内把件甩出去。
-constexpr double ARM_SLEW_MV_PER_SEC = 22000.0;
+// 但限太狠也不行：手动满压 10000 切回保持 ~3000，中间差 7000 mV，
+// 22 V/s 要爬 0.32 秒，臂就在这段空档里掉下去了。80 V/s 下只要 0.09 秒。
+constexpr double ARM_SLEW_MV_PER_SEC = 80000.0;
 
 // 位置环的微分：阻尼，不放大编码器噪声；理论临界值约 21，取 25。
 constexpr double ARM_KD_MV_PER_DEG_PER_SEC = 25.0;
-// 松手/到位第一拍单独用强阻尼，压住手动切 hold 的冲过头。
-constexpr double ARM_HOLD_KD_MV_PER_DEG_PER_SEC = 100.0;
-// hold 第一拍允许的最大反向刹车，防止阻尼把电机顶得太猛。
-constexpr double ARM_HOLD_BRAKE_MV = 8000.0;
+
+// 松手后速度降到这个值以下，才从「速度环刹车」切回「位置环保持」。
+// 切太早：臂还带着速度，位置环一上来就是反向大电流，看起来像掉了一下再弹回来。
+constexpr double ARM_STOP_DPS = 12.0;
 
 // 上升别给满压；下降有自重，全压会砸到底。
 constexpr int SLIDE_MANUAL_UP_MV = 7000;

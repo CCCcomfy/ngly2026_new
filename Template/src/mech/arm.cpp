@@ -34,6 +34,7 @@ bool holding = false;     // 到位后继续托住
 bool atTarget = true;
 double lastOutMv = 0.0;
 bool manualMode = false;
+bool stopping = false;          // 松手后由速度环刹车，速度归零再切位置保持
 double manualMv = 0.0;
 double manualVelTarget = 0.0;   // 手动满杆 120 deg/s，按杆量线性缩放
 PidState posPid;                // 位置环
@@ -161,6 +162,7 @@ void arm::init() {
     atTarget = true;
     lastOutMv = 0.0;
     manualMode = false;
+    stopping = false;
     manualMv = 0.0;
     manualVelTarget = 0.0;
     posPid.reset();
@@ -173,10 +175,11 @@ void arm::init() {
 void arm::update() {
     // 手动模式：手柄给的是“速度目标”，不是直接电压。
     // 速度 PI + 重力前馈，既保留托举力，又不会在负角度一按就满压硬顶/抖动。
-    if (manualMode) {
+    if (manualMode || stopping) {
         const double deg = getAngle();
         if (!std::isfinite(deg)) {
             manualMode = false;
+            stopping = false;
             manualVelTarget = 0.0;
             lastOutMv = 0.0;
             writeBoth(0);
@@ -185,7 +188,7 @@ void arm::update() {
 
         const double assist = gravityFeed(deg);
         const double vel = updateVelocity(deg);
-        double targetVel = manualVelTarget;
+        double targetVel = manualMode ? manualVelTarget : 0.0;
 
         // 软限位只在「归零过」时才可信；到限位就只保留托举，不再往外顶。
         if (zeroed) {
@@ -201,8 +204,10 @@ void arm::update() {
         const double temp = getTemperature();
         const double cap =
             (!std::isfinite(temp) || temp > TEMP_LIMIT_C) ? ARM_MAX_MV * 0.5 : ARM_MAX_MV;
+        // 刹车阶段不给积分：那一段 err 一直是负的，积分会把刹车越刹越狠，刹成反向冲。
+        const double ki = manualMode ? ARM_MANUAL_KI_MV_PER_DPS_SEC : 0.0;
         double out = pidStep(velPid, targetVel - vel, vel, kDt,
-                             ARM_MANUAL_KP_MV_PER_DPS, ARM_MANUAL_KI_MV_PER_DPS_SEC, 0.0,
+                             ARM_MANUAL_KP_MV_PER_DPS, ki, 0.0,
                              ff, -cap, cap);
 
         // 限位处只允许托住，不允许继续往外压。
@@ -214,6 +219,21 @@ void arm::update() {
             }
         }
         writeBoth(limited(out));
+
+        // 速度压到接近 0 才交给位置环：这一步是「松手不砸」的关键。
+        // 直接切 hold 的话，手动满压的 lastOutMv 和保持电压差着 6000 mV，
+        // 斜率限幅要爬好几拍，臂早就在这个空档里掉下去了。
+        if (stopping && std::fabs(vel) < ARM_STOP_DPS) {
+            stopping = false;
+            targetDeg = deg;
+            active = false;
+            holding = true;
+            atTarget = true;
+            posPid.reset();
+            velPid.reset();
+            hasLastDeg = false;
+            lastVel = 0.0;
+        }
         return;
     }
 
@@ -305,14 +325,17 @@ void arm::manual(int mv) {
         if (!manualMode) {
             return;      // 本来就没在手动，什么都不做
         }
+        // 不直接切 hold：先交给速度环把速度拉到 0，再由 update() 交棒给位置环。
         manualMode = false;
-        hold();
+        stopping = true;
+        manualVelTarget = 0.0;
         return;
     }
 
     const bool wasManual = manualMode;
     const bool reversed = (manualMv * static_cast<double>(mv)) < 0.0;
     manualMode = true;
+    stopping = false;
     manualMv = static_cast<double>(mv);
     manualVelTarget = (static_cast<double>(mv) / ARM_MANUAL_MV) * ARM_MANUAL_MAX_DPS;
     if (!wasManual || reversed) {
@@ -329,6 +352,7 @@ void arm::manual(int mv) {
 void arm::stop() {
     // 同样不能断电，把目标设成当前角度继续托住
     manualMode = false;
+    stopping = false;
     const double deg = getAngle();
     if (!std::isfinite(deg)) {
         active = false;
@@ -350,6 +374,7 @@ void arm::stop() {
 
 void arm::hold() {
     manualMode = false;
+    stopping = false;
     const double deg = getAngle();
     if (!std::isfinite(deg)) {
         active = false;
@@ -359,11 +384,10 @@ void arm::hold() {
         return;
     }
     targetDeg = deg;
-    // 松手时 lastOutMv 还停在手动电压上，slew 降下来之前臂已经冲出去了。
-    // 这里直接把反向刹车预装进斜率累加器，下一拍就能出反向力矩。
-    const double brake = gravityFeed(deg) -
-                         ARM_HOLD_KD_MV_PER_DEG_PER_SEC * (hasLastDeg ? lastVel : 0.0);
-    lastOutMv = clampd(brake, -ARM_HOLD_BRAKE_MV, ARM_MAX_MV);
+    // 注意：这里不要动 lastOutMv。
+    // 以前把「反向刹车」预装进斜率累加器，一松手就是 -8000 mV 的硬反转，
+    // 斜率限幅要 0.5 秒才爬回保持电压 —— 表现就是「停住瞬间急剧下落 + 来回晃」。
+    // 现在松手走 stopping（速度环刹到 0），电压全程连续。
     active = false;
     holding = true;
     manualVelTarget = 0.0;
@@ -407,6 +431,7 @@ void arm::tare() {
 // 慢速往下压，撞到机械限位后速度归零，把那个位置定义成 ARM_MIN_DEG。
 bool arm::zeroByStall(int timeoutMs) {
     manualMode = false;   // 不清掉，归零结束后 update 会拿旧的手柄电压接着压
+    stopping = false;
     manualMv = 0.0;
     manualVelTarget = 0.0;
     active = false;
