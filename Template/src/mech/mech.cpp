@@ -1,7 +1,8 @@
-// 机构总调度：把滑轨、摇臂、爪子合成一个位姿，上层一句话调用。
+// 机构总调度
 
 #include "mech/mech.hpp"
 
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 
@@ -12,9 +13,7 @@ namespace {
 
 pros::Task* ctrlTask = nullptr;
 
-// 非阻塞位姿的状态机。顺序按目标爪态推出来，不改 Pose 结构：
-//   要夹紧 -> 先夹，等爪到位，再动两轴；
-//   要张开 -> 先动两轴，到位后再松爪，等爪张开。
+//状态机，规定爪子和臂动的顺序
 enum class SeqStage { Idle, WaitClaw, MoveAxes, WaitClawDone };
 
 bool pending = false;
@@ -26,7 +25,7 @@ void startAxes(const mech::Pose& p) {
     arm::toAngleAsync(p.armDeg);
     stage = SeqStage::MoveAxes;
 }
-
+//状态机心跳
 void sequencerTick() {
     if (!pending) {
         return;
@@ -62,7 +61,7 @@ void sequencerTick() {
             break;
     }
 }
-
+//反馈的控制环
 void ctrlLoop(void*) {
     while (true) {
         slide::update();
@@ -83,12 +82,12 @@ void mech::init() {
 
 void mech::startTask() {
     if (ctrlTask == nullptr) {
-        // PROS 3.8 的三参数版本是 (函数, 参数, 名字)，没有独立的栈深度参数。
+       
         ctrlTask = new pros::Task(ctrlLoop, nullptr, "mech");
     }
 }
 
-// 控制任务到底起没起来。没起来的话，按键只会改标志、永远没有电机动作。
+// 控制任务到底起没起来。没起来的话，按键只会改标志，永远没有电机动作
 bool mech::taskRunning() { return ctrlTask != nullptr; }
 
 void mech::home() {
@@ -98,15 +97,20 @@ void mech::home() {
     arm::zeroByStall();
 }
 
+
 bool mech::goTo(const Pose& p, int timeoutMs) {
-    // 越界直接判失败。两个 Async 遇越界是静默返回的，isBusy() 会立刻为 false，
-    // 这里就会误判成"已到位"然后去夹爪——夹的是空气，还不报错。
-    if (p.slideIn < SLIDE_MIN_IN || p.slideIn > SLIDE_MAX_IN || p.armDeg < ARM_MIN_DEG ||
-        p.armDeg > ARM_MAX_DEG) {
+    //先取消可能还在跑的异步位姿
+    pending = false;
+    stage = SeqStage::Idle;
+
+    // 越界直接判失败
+    
+    if (p.slideIn < SLIDE_MIN_IN || p.slideIn > SLIDE_MAX_IN ||
+        (ARM_SOFT_LIMIT_ENABLED && (p.armDeg < ARM_MIN_DEG || p.armDeg > ARM_MAX_DEG))) {
         return false;
     }
 
-    // 要夹紧就先夹，等爪真的走完行程再抬臂；否则爪刚动、臂已经起来了。
+    // 先夹
     if (p.clawClosed && !claw::isClosed()) {
         claw::grab();
     }
@@ -129,17 +133,40 @@ bool mech::goTo(const Pose& p, int timeoutMs) {
         return false;
     }
 
-    // 要张开就等两轴到位后再松，避免带着件边走边掉。
+    // 避免带着件边走边掉
     if (!p.clawClosed && claw::isClosed()) {
         claw::release();
     }
     return true;
 }
 
-// 爪子用不等版本。主循环每 20ms 跑一次，被 220ms 卡住的话按一次键车会顿一下。
+bool mech::goTo(double degree, int timeoutMs) {
+    if (!std::isfinite(degree) ||
+        (ARM_SOFT_LIMIT_ENABLED && (degree < ARM_MIN_DEG || degree > ARM_MAX_DEG))) {
+        return false;  
+    }
+
+    pending = false;
+    stage = SeqStage::Idle;
+    arm::toAngleAsync(degree);
+
+    const std::uint32_t t0 = pros::millis();
+    while (arm::isBusy() &&
+           pros::millis() - t0 < static_cast<std::uint32_t>(timeoutMs)) {
+        pros::delay(5);
+    }
+
+    if (arm::isBusy()) {
+        arm::stop();   // 超时，原地托住当前角度
+        return false;
+    }
+    return true;      
+}
+
+
 void mech::goToAsync(const Pose& p) {
-    if (p.slideIn < SLIDE_MIN_IN || p.slideIn > SLIDE_MAX_IN || p.armDeg < ARM_MIN_DEG ||
-        p.armDeg > ARM_MAX_DEG) {
+    if (p.slideIn < SLIDE_MIN_IN || p.slideIn > SLIDE_MAX_IN ||
+        (ARM_SOFT_LIMIT_ENABLED && (p.armDeg < ARM_MIN_DEG || p.armDeg > ARM_MAX_DEG))) {
         return;
     }
 
@@ -153,9 +180,9 @@ void mech::goToAsync(const Pose& p) {
     stage = SeqStage::Idle;
 
     if (p.clawClosed && !claw::isClosed()) {
-        claw::grabNoWait();       // 先夹
+        claw::grabNoWait();       
     }
-    // 爪还在动作（包括上电那 220ms 的初始夹紧）时，等它稳定再动两轴。
+    // 爪还在动作时，等它稳定再动两轴。
     if (!claw::isSettled()) {
         stage = SeqStage::WaitClaw;
     } else {
@@ -170,7 +197,7 @@ void mech::emergencyStop() {
     pending = false;
     stage = SeqStage::Idle;
     slide::stop();
-    arm::stop();   // 不是断电，是托住
+    arm::stop();   //托住
 }
 
 void mech::printStatus(int row) {

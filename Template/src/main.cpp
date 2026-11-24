@@ -4,34 +4,19 @@
 #include "mech/controls.hpp"
 #include "mech/mech.hpp"
 #include "chassis/chassis_config.hpp"
-#include "ui/debug.hpp"
+#include "input/input.hpp"
+#include "ui/display.hpp"
 
-/**
- * 只执行一次的入场准备。执行期间所有比赛模式都会被挡住，所以要快。
- */
 void initialize()
 {
     pros::lcd::initialize();
     g_display.draw("[BOOT]");
 
-    // 机构上电必须排在 IMU 校准之前：mech::init() 起的是独立的 10ms 控制任务，
-    // 放在阻塞校准后面的话，IMU 一卡住（没接、校准超时）机构就永远没有控制任务，
-    // 表现就是「按键毫无反应」。机构先起，底盘再校准，互不阻塞。
     mech::init();
 
-    // 阻塞式校准（约 2 秒）：这一行返回之前车必须完全静止。
-    // 否则 IMU 会把「启动时的晃动」当成零位，之后所有转向都是歪的。
     g_chassis.resetImu();
 
     g_chassis.initialize();
-
-    // 手柄调试屏：起一个 5Hz 的后台任务，自动赛里不用再管它画屏
-    dbg::start(g_master);
-
-    // 归零：滑轨降到堵转、摇臂压到限位，最后收到行驶位。
-    // 两轴各最多 3 秒，参数没标定时会一直撞，调试期先注释掉 home 和 goTo 这两行。
-    // mech::home();
-    // mech::goTo(mech::TRAVEL, 1500);
 
     g_display.draw("[READY]");
 }
@@ -70,35 +55,32 @@ void autonomous()
 
     g_chassis.setPose(0, 0, 0);
 
-    dbg::step("PIN"); // 放初始 pin
     g_chassis.driveDistance(26.4, 2000);
     g_chassis.turnTo(90, 2000);
     g_chassis.driveDistance(22, 2000);
-    //mech::goTo(mech::LOW_GOAL, 2000);
+    // mech::goTo(mech::LOW_GOAL, 2000);
 
-    //dbg::step("GRAB"); // 退出来取第一个块
+    // dbg::step("GRAB"); // 退出来取第一个块
     g_chassis.driveDistance(-22, 2000);
     g_chassis.turnTo(45, 2000);
-    //mech::goTo(mech::GROUND, 2000);
+    // mech::goTo(mech::GROUND, 2000);
     g_chassis.driveDistance(55, 5000);
-    //claw::grab();
-    //mech::goTo(mech::CARRY, 2000);
+    // claw::grab();
+    // mech::goTo(mech::CARRY, 2000);
 
-    //dbg::step("STACK"); // 回场地中间堆叠
+    // dbg::step("STACK"); // 回场地中间堆叠
     g_chassis.driveDistance(-55, 2000);
     g_chassis.turnTo(90, 2000);
     g_chassis.driveDistance(22, 2000);
-    //mech::goTo(mech::STACK, 2000);
-    //claw::release();
-    //mech::goTo(mech::TRAVEL, 2000);
+    // mech::goTo(mech::STACK, 2000);
+    // claw::release();
+    // mech::goTo(mech::TRAVEL, 2000);
 
-    //dbg::step("HOME"); // 收车
     g_chassis.driveDistance(-22, 2000);
     g_chassis.turnTo(0, 2000);
     g_chassis.driveDistance(-28, 2000);
     g_chassis.driveDistance(5, 2000);
 
-    dbg::step("DONE");
     g_chassis.stop();
 }
 
@@ -108,20 +90,30 @@ void opcontrol()
     g_display.draw("[OPCTRL]");
 
     int loop_count = 0;
-
     while (true)
     {
-        // 街机式：左杆前后，右杆左右转向（右推右转）
+        const bool automode = g_master.get_digital(pros::E_CONTROLLER_DIGITAL_Y);
+        if (automode)
+        {
+            g_chassis.initialize();
+            g_chassis.tareHeading();
+            g_chassis.setPose(0, 0, 0);
+            g_chassis.driveDistance(60, 2000);
+            g_chassis.driveDistance(-62, 2000);
+            g_chassis.driveDistance(60, 2000);
+            g_chassis.driveDistance(-62, 2000);
+            g_chassis.driveDistance(110, 2000);
+            break;
+        }
+    }
+    while (true)
+    {
         const int power = g_master.get_analog(ANALOG_LEFT_Y);
         const int turn = g_master.get_analog(ANALOG_RIGHT_X);
         g_chassis.arcade(power, turn);
 
-        // 机构手动控制：滑轨 L2/L1、摇臂 R2/R1、爪 A、复原 B、取件 X。
-        // 不阻塞，必须在每圈里调；底盘那两行不要重复处理手柄。
         controls::task();
 
-        // 屏幕约 4Hz 刷新。写屏比想象中慢，每圈都画会把主循环拖到十几赫兹，
-        // 表现就是「摇杆一动车要慢半拍」。
         if (++loop_count % 12 == 0)
         {
             g_display.draw("[OPCTRL]");
